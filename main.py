@@ -31,10 +31,9 @@ def main(model, english, verbose, energy, pause, dynamic_energy, save_file):
                      args=(audio_queue, energy, pause, dynamic_energy, save_file, temp_dir)).start()
     threading.Thread(target=transcribe_forever,
                      args=(audio_queue, result_queue, audio_model, english, verbose, save_file)).start()
-    threading.Thread(target=listen_for_commands, args=(result_queue,)).start()
 
-    # while True:
-        # print(result_queue.get())
+    while True:
+        print(result_queue.get())
 
 
 def record_audio(audio_queue, energy, pause, dynamic_energy, save_file, temp_dir):
@@ -86,9 +85,6 @@ def transcribe_forever(audio_queue, result_queue, audio_model, english, verbose,
 
         if save_file:
             os.remove(audio_data)
-
-
-def make_new_parsing_process():
 
 
 main(model, english, verbose, energy, pause, dynamic_energy, save_file)
