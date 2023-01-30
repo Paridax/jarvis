@@ -1,32 +1,42 @@
 import selenium.common
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as ec
+from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
-import undetected_chromedriver as uc
+import undetected_chromedriver.v2 as uc
 from time import sleep
-import re
 
-options = Options()
-options.add_argument(
-    "user-agent=Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 "
-    "Safari/537.36 "
-)
+options = webdriver.ChromeOptions()
+
+
+# options.add_argument(
+#     "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
+# )
 
 
 class ChatGPT:
-    def __init__(self, token, conversation_id = None):
+    def __init__(self, token, conversation_id=None, headless=False):
         """
         Create a new ChatGPT chatbot
-        :param token:
-        :param conversation_id:
+        :param token: the cookie token
+        :param conversation_id: the conversation id
+        :param headless: whether to run the browser in headless mode
         """
         if conversation_id is None or conversation_id.strip() == "":
             conversation_id = ""
         self.token = token
         self.conversation_id = conversation_id
+        self.headless = headless
         self.ready = False
 
+        # if headless then add the headless option
+        if headless:
+            options.add_argument("--headless")
+
         self.driver = uc.Chrome(options=options)
+        # make window 1970x1080
+        self.driver.set_window_size(1900, 1070)
 
         self.input_field = None
         self.input_path = r'''/html/body/div[1]/div[2]/div/main/div[2]/form/div/div[2]/textarea'''
@@ -58,7 +68,8 @@ class ChatGPT:
         Get all messages in the chat
         :return:
         """
-        messages = self.driver.find_elements(By.XPATH, '''//*[@id="__next"]/div[1]/div[1]/main/div[1]/div/div/div/div''')
+        messages = self.driver.find_elements(By.XPATH,
+                                             '''//*[@id="__next"]/div[1]/div[1]/main/div[1]/div/div/div/div''')
 
         text_messages = []
         for message in range(1, len(messages)):
@@ -82,23 +93,6 @@ class ChatGPT:
                     "complete": True
                 })
         return text_messages
-
-    def wait_for_element(self, by, element, message=None):
-        """
-        Wait for an element to appear
-        :param by:
-        :param element:
-        :param message:
-        :return:
-        """
-        while True:
-            try:
-                self.driver.find_element(by, element)
-                if message is not None:
-                    print(message)
-                break
-            except selenium.common.exceptions.NoSuchElementException as e:
-                pass
 
     def does_element_exist(self, by, element):
         """
@@ -156,14 +150,6 @@ class ChatGPT:
             print("Stopping generation...")
             sleep(0.5)
 
-    def delete_element(self, jsReference):
-        """
-        Delete an element from the page
-        :param jsReference:
-        :return:
-        """
-        self.driver.execute_script(fr'''elem = document.querySelector("{jsReference}"); elem.remove();''')
-
     def close(self):
         """
         Close the browser
@@ -172,20 +158,23 @@ class ChatGPT:
         self.driver.close()
         self.driver.quit()
 
+    def delete_element(self, jsReference):
+        """
+        Delete an element from the page
+        :param jsReference:
+        :return:
+        """
+        self.driver.execute_script(fr'''elem = document.querySelector("{jsReference}"); elem.remove();''')
+
     def regenerate_response_error(self):
         """
         Regenerate the response if there is an error
         :return:
         """
+        sleep(2)
         button1 = r'''//*[@id="__next"]/div[1]/div[1]/main/div[2]/form/div/div/button'''
-        for i in range(0, 4):
-            if not self.does_element_exist(By.XPATH, self.input_path):
-                self.driver.find_element(By.XPATH, button1).click()
-                sleep(0.5)
-        if not self.does_element_exist(By.XPATH, self.input_path):
-            # reload the page
-            # self.load_page(self.conversation_id, self.token)
-            pass
+        if self.does_element_exist(By.XPATH, '''//*[@id="__next"]/div[2]/div[1]/main/div[2]/form/div/div/span'''):
+            self.driver.find_element(By.XPATH, button1).click()
 
     def load_page(self, token, conversation_id):
         """
@@ -194,21 +183,25 @@ class ChatGPT:
         :param conversation_id:
         :return:
         """
-        self.driver.get(f"https://chat.openai.com/chat/{conversation_id}")
 
-        self.wait_for_element(By.ID, "__next")
+        self.driver.get(f"https://chat.openai.com/chat/{conversation_id}")
+        self.driver.minimize_window()
+
+        # tries to find the element with id "__next" for 30 seconds
+        WebDriverWait(self.driver, 30).until(
+            ec.presence_of_element_located((By.ID, "__next"))
+        )
 
         # print("Page is ready!")
 
         self.driver.add_cookie({"name": "__Secure-next-auth.session-token", "value": token})
 
         self.driver.get(f"https://chat.openai.com/chat/{conversation_id}")
-        self.wait_for_element(By.ID, "__next")
 
-        sleep(1)
-
-        self.driver.get(f"https://chat.openai.com/chat/{conversation_id}")
-        self.wait_for_element(By.ID, "__next")
+        # tries to find the element with id "__next" for 30 seconds
+        WebDriverWait(self.driver, 30).until(
+            ec.presence_of_element_located((By.ID, "__next"))
+        )
 
         # check if the login button is there
         login_button = self.does_element_exist(By.XPATH, '''//*[@id="__next"]/div[1]/div/div[4]/button[1]''')
@@ -224,12 +217,9 @@ class ChatGPT:
             print(e)
             pass
 
-        while self.input_field is None:
-            try:
-                self.input_field = self.driver.find_element(By.XPATH, self.input_path)
-                # print("Found input field")
-            except selenium.common.exceptions.NoSuchElementException as e:
-                pass
+        self.input_field = WebDriverWait(self.driver, 30).until(
+            ec.presence_of_element_located((By.XPATH, self.input_path))
+        )
 
         check_style = self.driver.find_element(By.XPATH, '''//*[@id="__next"]/div[1]''')
         if check_style.get_attribute(
