@@ -1,90 +1,204 @@
-import io
-from pydub import AudioSegment
-import speech_recognition as sr
-import whisper
-import queue
-import tempfile
-import os
-import threading
-import torch
-import numpy as np
+import scraper
+import dotenv
+from os import system
+from re import search
+import json
+from transformers import GPT2TokenizerFast
+from subprocess import Popen
+import datetime
+from gtts import gTTS
+import playsound
+import openai
 
-model = "tiny"
-english = True
-verbose = False
-energy = 300
-pause = 0.8
-dynamic_energy = False
-save_file = False
-trigger_phrase = "windows"
+tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
 
+# Load the environment variables
+dotenv.load_dotenv()
 
-def main(model, english, verbose, energy, pause, dynamic_energy, save_file):
-    temp_dir = tempfile.mkdtemp() if save_file else None
-    # there are no english models for large
-    if model != "large" and english:
-        model = model + ".en"
-    audio_model = whisper.load_model(model)
-    audio_queue = queue.Queue()
-    result_queue = queue.Queue()
-    threading.Thread(target=record_audio,
-                     args=(audio_queue, energy, pause, dynamic_energy, save_file, temp_dir)).start()
-    threading.Thread(target=transcribe_forever,
-                     args=(audio_queue, result_queue, audio_model, english, verbose, save_file)).start()
+# Set the OpenAI API key
+API_KEY = dotenv.get_key(dotenv.find_dotenv(), "OPENAI_API_KEY")
 
-    while True:
-        print(result_queue.get())
+openai.api_key = API_KEY
 
 
-def record_audio(audio_queue, energy, pause, dynamic_energy, save_file, temp_dir):
-    # load the speech recognizer and set the initial energy threshold and pause threshold
-    r = sr.Recognizer()
-    r.energy_threshold = energy
-    r.pause_threshold = pause
-    r.dynamic_energy_threshold = dynamic_energy
+def wait_then_parse_dictionary(result):
+    """
+    Waits until the chat is done generating, then parses the dictionary from the response
+    :return:
+    """
 
-    with sr.Microphone(sample_rate=16000) as source:
-        print("Say something!")
-        i = 0
-        while True:
-            # get and save audio to wav file
-            audio = r.listen(source)
-            if save_file:
-                data = io.BytesIO(audio.get_wav_data())
-                audio_clip = AudioSegment.from_file(data)
-                filename = os.path.join(temp_dir, f"temp{i}.wav")
-                audio_clip.export(filename, format="wav")
-                audio_data = filename
+    print("response", result)
+    # find the dictionary in the response
+    # use regex to find the dictionary between { and }
+    regex = r"\{[\s\S]*\}"
+    dictionary = search(regex, result)
+    try:
+        # get dictionary as a string
+        dictionary = dictionary.group(0)
+        # remove the first space character if it exists
+        if dictionary[1] == " ":
+            dictionary = dictionary[0] + dictionary[2:]
+        # replace backslashes with forward slashes
+        dictionary = dictionary.replace("\\", "/")
+        # convert to dictionary
+        dictionary = json.loads(dictionary)
+    except AttributeError:
+        dictionary = {
+            "action": "conversation",
+            "gptoutput": "There was an error parsing the dictionary. Please try again.",
+        }
+    return dictionary
+
+
+while True:
+    message = input("> ")
+    message = message.strip()
+
+    prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: "action" (example categories: "conversation","open","execute","query","play","pause"), "weather" (weather related, boolean), "keywords"(list), "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","gptoutput" (your response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
+
+    result = openai.Completion.create(
+        prompt=prompt,
+        engine="text-davinci-003",
+        temperature=0,
+        max_tokens=200,
+    )
+
+    text = result["choices"][0]["text"].strip()
+
+    # print price of prompt and response in usd
+    print(
+        f"Total cost in dollars: ${round((len(tokenizer(prompt)['input_ids']) + len(tokenizer(text)['input_ids'])) * .00002, 5)}")
+
+    dictionary = wait_then_parse_dictionary(text)
+    # get the action
+    action = dictionary.get("action")
+    print(f"Action: {action}")
+    if action == "conversation":
+        print(dictionary.get("gptoutput"))
+    # if keywords has add and applist in it then add the app to the connected_apps.json file
+    elif "add" in dictionary.get("keywords") and (
+            (
+                    "app" in dictionary.get("keywords")
+                    and "list" in dictionary.get("keywords")
+            )
+            or "app list" in dictionary.get("keywords")
+            or "applist" in dictionary.get("keywords")
+    ):
+        # get the app name
+        appname = dictionary.get("appname").lower()
+        # get the app path
+        apppath = dictionary.get("apppath")
+        # open the connected_apps.json file
+        with open(
+                "settings/connected_apps.json", "r"
+        ) as f:  # if the file is empty then make it an empty dictionary
+            if f.read() == "":
+                apps = {}
             else:
-                torch_audio = torch.from_numpy(np.frombuffer(audio.get_raw_data(), np.int16).flatten().astype(np.float32) / 32768.0)
-                audio_data = torch_audio
+                apps = json.load(f)
+        # add the app name and path to the json file
+        apps[appname] = apppath
+        # save the json file
+        with open("settings/connected_apps.json", "w") as f:
+            json.dump(apps, f)
+        print("Added", appname, "to the list of connected apps")
 
-            audio_queue.put_nowait(audio_data)
-            i += 1
+    # if keywords has remove and applist in it then remove the app from the connected_apps.json file
+    elif "remove" in dictionary.get("keywords") and (
+            "applist" in dictionary.get("keywords")
+            or "app list" in dictionary.get("keywords")
+    ):
+        # get the app name
+        appname = dictionary.get("appname").lower()
+        # open the connected_apps.json file
+        with open("settings/connected_apps.json", "r") as f:
+            apps = json.load(f)
+        # remove the app name and path from the json file
+        del apps[appname]
+        # save the json file
+        with open("settings/connected_apps.json", "w") as f:
+            json.dump(apps, f)
+        print("Removed", appname, "from the list of connected apps")
 
-
-def transcribe_forever(audio_queue, result_queue, audio_model, english, verbose, save_file):
-    while True:
-        audio_data = audio_queue.get()
-        if english:
-            result = audio_model.transcribe(audio_data,language='english')
+    elif action == "open":
+        # read list of connected apps from json file
+        with open("settings/connected_apps.json", "r") as f:
+            apps = json.load(f)
+        # get the app name
+        appname = dictionary.get("appname").lower()
+        # if the app name is in the list of connected apps then open it
+        if appname in apps:
+            print(f"Opening {appname} at {apps[appname]}")
+            # run the executable and add quotes around the path, using subprocess
+            # if open fails then print an error message
+            try:
+                Popen([f"{apps[appname]}"])
+            except:
+                print(f"Could not open {appname} at {apps[appname]}")
         else:
-            result = audio_model.transcribe(audio_data)
-
-        if not verbose:
-            predicted_text = result["text"]
-            result_queue.put_nowait("You said: " + predicted_text)
-            # check if the trigger phrase was said
-            if trigger_phrase.lower() in predicted_text.lower():
-                # select all text after the first character of the first use of the trigger phrase
-                message_start = predicted_text.lower().find(trigger_phrase.lower())
-                message = predicted_text[message_start:]
-                result_queue.put_nowait("&M " + message)
+            if dictionary.get("websitelink") is not None:
+                print("Opening", dictionary.get("websitelink"))
+                system("start " + dictionary.get("websitelink"))
+    elif action == "play":
+        if dictionary.get("websitelink") is not None:
+            print("Playing", dictionary.get("websitelink"))
+            system("start " + dictionary.get("websitelink"))
         else:
-            result_queue.put_nowait(result)
+            print("Playing", dictionary.get("target"))
+            # replace the spaces in the command with a plus sign
+            youtubequery = dictionary.get("target").replace(" ", "+")
+            # open the youtube link
+            system(
+                f"start https://www.youtube.com/results?search_query={youtubequery}"
+            )
+    elif action == "execute":
+        print("Executing", dictionary.get("target"))
+    elif action == "query":
+        if "time" in dictionary.get("keywords"):
+            # get the current time and print
+            print("The time is", datetime.datetime.now().strftime("%H:%M"))
 
-        if save_file:
-            os.remove(audio_data)
+            # say the time
+            tts = gTTS(
+                text=f"The time is {datetime.datetime.now().strftime('%H:%M')}",
+                lang="en",
+            )
+            tts.save("time.mp3")
+            # get current path
+            path = os.path.dirname(os.path.abspath(__file__))
+            playsound.playsound(f"{path}\\time.mp3")
+            os.remove("time.mp3")
+            continue
+        query = dictionary.get("fullsearchquery")
+        url = dictionary.get("searchcompletetemplateurl")
+        print("Querying", query)
 
+        search_results = scraper.search(query, two_results=True)
 
-main(model, english, verbose, energy, pause, dynamic_energy, save_file)
+        print(f"Original search result length: {len(search_results)}")
+        # take away anything that is unneeded from the search results
+        search_results = search_results.replace("<div>", "")
+        search_results = search_results.replace("</div>", "")
+        print(f"Search result length after removing divs: {len(search_results)}")
+
+        prompt = f"""What is the answer to this query? Can you give me a JSON OBJECT NOT IN A CODE BLOCK in python with a dictionary with the keys: "releventdata" (list),"appname","websitelink","command","answer" (your response in a full sentence, leave as None if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Query:  \"{query}\" HTML: {search_results}"""
+
+        responce = openai.Completion.create(
+            prompt=prompt,
+            engine="text-davinci-003",
+            temperature=0,
+            max_tokens=200,
+        )
+
+        text = responce["choices"][0]["text"].strip()
+
+        # print price of prompt and response in usd
+        print(
+            f"Total cost in dollars: ${round((len(tokenizer(prompt)['input_ids']) + len(tokenizer(text)['input_ids'])) * .00002, 5)}")
+
+        dictionary = wait_then_parse_dictionary(text)
+
+        # get the answer
+        answer = dictionary.get("answer")
+        print("ANSWER:")
+        print(answer)
