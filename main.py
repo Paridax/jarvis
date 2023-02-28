@@ -54,7 +54,7 @@ while True:
     message = input("> ")
     message = message.strip()
 
-    prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: "action" (example categories: "conversation","open","execute","query","play","pause"), "weather" (weather related, boolean), "keywords"(list), "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","gptoutput" (your response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
+    prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: "action" (example categories: "conversation","open","execute","query","play","pause"), "weather" (weather related, boolean), location(region name if given), "keywords"(list), "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","gptoutput" (your response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
 
     result = openai.Completion.create(
         prompt=prompt,
@@ -153,6 +153,15 @@ while True:
             )
     elif action == "execute":
         print("Executing", dictionary.get("target"))
+    elif dictionary.get("weather") is True:
+        print("Getting weather")
+        # get the location from the dictionary
+        location = dictionary.get("location")
+        # get the weather
+        weather = scraper.weather(location)
+        # print the weather for the day
+        print(
+            f"""Today's weather in {location}:\nTemperature: {weather["temp"]}°F\nConditions: {weather["weather"]}\nWind Speed: {weather["wind"]} mph\nHumidity: {weather["humidity"]}\nPrecipitation: {weather["precipitation"]}""")
     elif action == "query":
         if "time" in dictionary.get("keywords"):
             # get the current time and print
@@ -179,6 +188,10 @@ while True:
         # take away anything that is unneeded from the search results
         search_results = search_results.replace("<div>", "")
         search_results = search_results.replace("</div>", "")
+        search_results = search_results.replace("<tr>", "")
+        search_results = search_results.replace("<th>", "")
+        search_results = search_results.replace("</th>", "")
+        search_results = search_results.replace("<th", "")
         print(f"Search result length after removing divs: {len(search_results)}")
 
         prompt = f"""What is the answer to this query? Can you give me a JSON OBJECT NOT IN A CODE BLOCK in python with a dictionary with the keys: "releventdata" (list),"appname","websitelink","command","answer" (your response in a full sentence, leave as None if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Query:  \"{query}\" HTML: {search_results}"""

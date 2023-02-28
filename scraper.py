@@ -58,10 +58,12 @@ def trim_html(
         text = re.sub(r'''([\n\r])''', " ", text)
     return text
 
+
 chrome_options = Options()
 chrome_options.add_argument("--headless")
 
 driver = webdriver.Chrome(options=chrome_options)
+
 
 def weather(region_name):
     global driver
@@ -141,9 +143,9 @@ def search(query, single_result=False, two_results=False):
     else:
         results = []
         for i in range(len(all_results)):
-            print(trim_html(f'''{i + 1}. {all_results[i].get_attribute("innerHTML")}''', delete_newlines=True, delete_images=True, delete_links=True))
+            print(trim_html(f'''{i + 1}. {all_results[i].get_attribute("innerHTML")}''', delete_newlines=True,
+                            delete_images=True, delete_links=True))
         return all_results
-
 
 # print(weather("amsterdam"))
 #
