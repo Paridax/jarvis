@@ -55,7 +55,7 @@ while True:
     message = input("> ")
     message = message.strip()
 
-    prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: "action" (example categories: "conversation","open","execute","query","play","pause"), "weather" (weather related, boolean), location(region name if given), "keywords"(list), "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","gptoutput" (your response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
+    prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: "action" (example categories: "conversation","open","execute","query","play","pause"), "weather" (weather related, boolean), location(region name if given), "keywords"(list), "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","songsearch"(song title and author if given),"gptoutput" (your response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
 
     result = openai.ChatCompletion.create(
         messages=[
@@ -151,13 +151,11 @@ while True:
             print("Playing", dictionary.get("websitelink"))
             system("start " + dictionary.get("websitelink"))
         else:
-            print("Playing", dictionary.get("target"))
-            # replace the spaces in the command with a plus sign
-            youtubequery = dictionary.get("target").replace(" ", "+")
+            youtubequery = dictionary.get("songsearch")["title"].replace(" ", "+") + "+" + dictionary.get("songsearch")[
+                "author"].replace(" ", "+")
+            print("Playing", dictionary.get("songsearch")["title"])
             # open the youtube link
-            system(f"start https://www.youtube.com/results?search_query={youtubequery}")
-    elif action == "execute":
-        print("Executing", dictionary.get("target"))
+            system("start " + f"https://www.youtube.com/results?search_query={youtubequery}")
     elif dictionary.get("weather") is True:
         print("Getting weather")
         # get the location from the dictionary
