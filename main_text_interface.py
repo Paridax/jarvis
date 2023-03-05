@@ -3,14 +3,11 @@ import dotenv
 from os import system
 from re import search
 import json
-from transformers import GPT2TokenizerFast
 from subprocess import Popen
 import datetime
 from gtts import gTTS
 import playsound
 import openai
-
-tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
 
 # Load the environment variables
 dotenv.load_dotenv()
@@ -21,11 +18,15 @@ API_KEY = dotenv.get_key(dotenv.find_dotenv(), "OPENAI_API_KEY")
 openai.api_key = API_KEY
 
 
-def wait_then_parse_dictionary(result):
+def wait_then_parse_dictionary(result, prompt):
     """
     Waits until the chat is done generating, then parses the dictionary from the response
     :return:
     """
+    # access log file and save prompt and response
+    with open("settings/log.txt", "a") as f:
+        f.write(f"{datetime.datetime.now()}:Prompt: {prompt}\n")
+        f.write(f"{datetime.datetime.now()}:Result: {result}\n")
 
     print("response", result)
     # find the dictionary in the response
@@ -56,20 +57,25 @@ while True:
 
     prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: "action" (example categories: "conversation","open","execute","query","play","pause"), "weather" (weather related, boolean), location(region name if given), "keywords"(list), "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","gptoutput" (your response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
 
-    result = openai.Completion.create(
-        prompt=prompt,
-        engine="text-davinci-003",
+    result = openai.ChatCompletion.create(
+        messages=[
+            {"role": "user", "content": prompt},
+        ],
+        model="gpt-3.5-turbo",
         temperature=0,
         max_tokens=200,
     )
 
-    text = result["choices"][0]["text"].strip()
+    text = result["choices"][0]["message"]["content"]
+
+    # print the tokens used
+    print(f"Tokens used for completion: {result['usage']['completion_tokens']}")
+    print(f"Tokens used for prompt: {result['usage']['prompt_tokens']}")
 
     # print price of prompt and response in usd
-    print(
-        f"Total cost in dollars: ${round((len(tokenizer(prompt)['input_ids']) + len(tokenizer(text)['input_ids'])) * .00002, 5)}")
+    print(f"Total cost in dollars: ${result['usage']['total_tokens'] * 0.000002}")
 
-    dictionary = wait_then_parse_dictionary(text)
+    dictionary = wait_then_parse_dictionary(text, prompt)
     # get the action
     action = dictionary.get("action")
     print(f"Action: {action}")
@@ -77,10 +83,7 @@ while True:
         print(dictionary.get("gptoutput"))
     # if keywords has add and applist in it then add the app to the connected_apps.json file
     elif "add" in dictionary.get("keywords") and (
-            (
-                    "app" in dictionary.get("keywords")
-                    and "list" in dictionary.get("keywords")
-            )
+            ("app" in dictionary.get("keywords") and "list" in dictionary.get("keywords"))
             or "app list" in dictionary.get("keywords")
             or "applist" in dictionary.get("keywords")
     ):
@@ -125,7 +128,11 @@ while True:
         with open("settings/connected_apps.json", "r") as f:
             apps = json.load(f)
         # get the app name
-        appname = dictionary.get("appname").lower()
+        appname = dictionary.get("appname")
+        if appname is None:
+            appname = None
+        else:
+            appname = appname.lower()
         # if the app name is in the list of connected apps then open it
         if appname in apps:
             print(f"Opening {appname} at {apps[appname]}")
@@ -148,9 +155,7 @@ while True:
             # replace the spaces in the command with a plus sign
             youtubequery = dictionary.get("target").replace(" ", "+")
             # open the youtube link
-            system(
-                f"start https://www.youtube.com/results?search_query={youtubequery}"
-            )
+            system(f"start https://www.youtube.com/results?search_query={youtubequery}")
     elif action == "execute":
         print("Executing", dictionary.get("target"))
     elif dictionary.get("weather") is True:
@@ -161,7 +166,8 @@ while True:
         weather = scraper.weather(location)
         # print the weather for the day
         print(
-            f"""Today's weather in {location}:\nTemperature: {weather["temp"]}°F\nConditions: {weather["weather"]}\nWind Speed: {weather["wind"]} mph\nHumidity: {weather["humidity"]}\nPrecipitation: {weather["precipitation"]}""")
+            f"""Today's weather in {location}:\nTemperature: {weather["temp"]}°F\nConditions: {weather["weather"]}\nWind Speed: {weather["wind"]} mph\nHumidity: {weather["humidity"]}\nPrecipitation: {weather["precipitation"]}"""
+        )
     elif action == "query":
         if "time" in dictionary.get("keywords"):
             # get the current time and print
@@ -196,20 +202,21 @@ while True:
 
         prompt = f"""What is the answer to this query? Can you give me a JSON OBJECT NOT IN A CODE BLOCK in python with a dictionary with the keys: "releventdata" (list),"appname","websitelink","command","answer" (your response in a full sentence, leave as None if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Query:  \"{query}\" HTML: {search_results}"""
 
-        responce = openai.Completion.create(
-            prompt=prompt,
-            engine="text-davinci-003",
+        response = openai.ChatCompletion.create(
+            messages=[
+                {"role": "user", "content": prompt},
+            ],
+            model="gpt-3.5-turbo",
             temperature=0,
             max_tokens=200,
         )
 
-        text = responce["choices"][0]["text"].strip()
+        text = response["choices"][0]["message"]["content"]
 
         # print price of prompt and response in usd
-        print(
-            f"Total cost in dollars: ${round((len(tokenizer(prompt)['input_ids']) + len(tokenizer(text)['input_ids'])) * .00002, 5)}")
+        print(f"Total cost in dollars: ${response['usage']['total_tokens'] * 0.000002}")
 
-        dictionary = wait_then_parse_dictionary(text)
+        dictionary = wait_then_parse_dictionary(text, prompt)
 
         # get the answer
         answer = dictionary.get("answer")
