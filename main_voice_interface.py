@@ -24,12 +24,12 @@ openai.api_key = API_KEY
 
 # Initialize recognizer
 r = sr.Recognizer()
-"""with sr.Microphone() as source:
-    print("Adjusting for ambient noise...")
+print("Adjusting for ambient noise...")
+# Adjust for ambient noise
+with sr.Microphone() as source:
     r.adjust_for_ambient_noise(source, duration=1)
-    print("Finished adjusting for ambient noise.")
-"""
-r.dynamic_energy_threshold = True
+print("Done adjusting for ambient noise")
+r.dynamic_energy_threshold = False
 
 # make connected_apps.json in settings folder if it doesn't exist
 if not os.path.exists("settings/connected_apps.json"):
@@ -40,10 +40,10 @@ if not os.path.exists("settings/connected_apps.json"):
 def listen_for_key_phrase(key_phrase, r):
     # Use microphone as source
     with sr.Microphone() as source:
-        print("Listening for key phrase...")
-
         while True:
             try:
+                print("Listening for key phrase...")
+                print(f"Listener energy threshold: {r.energy_threshold}")
                 # Listen for speech
                 audio = r.listen(source, timeout=1, phrase_time_limit=10)
 
@@ -62,7 +62,9 @@ def listen_for_key_phrase(key_phrase, r):
                 except sr.UnknownValueError:
                     print("Could not understand audio")
                 except sr.RequestError as e:
-                    print(f"Could not request results from Google Speech Recognition service; {e}")
+                    print(
+                        f"Could not request results from Google Speech Recognition service; {e}"
+                    )
             except sr.WaitTimeoutError:
                 print("Timeout")
 
@@ -99,7 +101,7 @@ def wait_then_parse_dictionary(result, prompt):
 while True:
     text = listen_for_key_phrase(keyword, r)
 
-    message = text.lower().replace(keyword, '').strip()
+    message = text.lower().replace(keyword, "").strip()
     print(message)
 
     prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: "action" (example categories: "conversation","open","execute","query","play","pause"), "weather" (weather related, boolean), location(region name if given), "keywords"(list), "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","gptoutput" (your response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
