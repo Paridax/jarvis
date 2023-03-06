@@ -56,7 +56,8 @@ def record_audio(audio_queue, energy, pause, dynamic_energy, save_file, temp_dir
                 audio_clip.export(filename, format="wav")
                 audio_data = filename
             else:
-                torch_audio = torch.from_numpy(np.frombuffer(audio.get_raw_data(), np.int16).flatten().astype(np.float32) / 32768.0)
+                torch_audio = torch.from_numpy(
+                    np.frombuffer(audio.get_raw_data(), np.int16).flatten().astype(np.float32) / 32768.0)
                 audio_data = torch_audio
 
             audio_queue.put_nowait(audio_data)
@@ -67,7 +68,7 @@ def transcribe_forever(audio_queue, result_queue, audio_model, english, verbose,
     while True:
         audio_data = audio_queue.get()
         if english:
-            result = audio_model.transcribe(audio_data,language='english')
+            result = audio_model.transcribe(audio_data, language='english')
         else:
             result = audio_model.transcribe(audio_data)
 
