@@ -21,10 +21,10 @@ openai.api_key = API_KEY
 def wait_then_parse_dictionary(result, prompt):
     # access log file and save prompt and response
     with open("settings/log.txt", "a") as f:
-    f.write(
-        f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: {prompt.encode('unicode_escape').decode('utf-8')}\n{result.encode('unicode_escape').decode('utf-8')}\n"
-    )
-    f.write("\n")
+        f.write(
+            f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: {prompt.encode('unicode_escape').decode('utf-8')}\n{result.encode('unicode_escape').decode('utf-8')}\n"
+        )
+        f.write("\n")
 
     print("response", result)
     # find the dictionary in the response
