@@ -21,7 +21,6 @@ openai.api_key = API_KEY
 def wait_then_parse_dictionary(result, prompt):
     # access log file and save prompt and response
     with open("settings/log.txt", "a") as f:
-    # write the prompt and response to the log file, encode unicode characters to prevent errors
     f.write(
         f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: {prompt.encode('unicode_escape').decode('utf-8')}\n{result.encode('unicode_escape').decode('utf-8')}\n"
     )
@@ -151,10 +150,10 @@ while True:
             system("start " + dictionary.get("websitelink"))
         else:
             youtubequery = (
-    dictionary.get("songsearch")["title"].replace(" ", "+")
-    + "+"
-    + dictionary.get("songsearch")["author"].replace(" ", "+")
-)
+                    dictionary.get("songsearch")["title"].replace(" ", "+")
+                    + "+"
+                    + dictionary.get("songsearch")["author"].replace(" ", "+")
+            )
             print("Playing", dictionary.get("songsearch")["title"])
             # open the youtube link
             system(
