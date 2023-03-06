@@ -19,14 +19,13 @@ openai.api_key = API_KEY
 
 
 def wait_then_parse_dictionary(result, prompt):
-    """
-    Waits until the chat is done generating, then parses the dictionary from the response
-    :return:
-    """
     # access log file and save prompt and response
     with open("settings/log.txt", "a") as f:
-        f.write(f"{datetime.datetime.now()}:Prompt: {prompt}\n")
-        f.write(f"{datetime.datetime.now()}:Result: {result}\n")
+    # write the prompt and response to the log file, encode unicode characters to prevent errors
+    f.write(
+        f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: {prompt.encode('unicode_escape').decode('utf-8')}\n{result.encode('unicode_escape').decode('utf-8')}\n"
+    )
+    f.write("\n")
 
     print("response", result)
     # find the dictionary in the response
@@ -63,7 +62,7 @@ while True:
         ],
         model="gpt-3.5-turbo",
         temperature=0,
-        max_tokens=200,
+        max_tokens=1000,
     )
 
     text = result["choices"][0]["message"]["content"]
@@ -92,9 +91,7 @@ while True:
         # get the app path
         apppath = dictionary.get("apppath")
         # open the connected_apps.json file
-        with open(
-                "settings/connected_apps.json", "r"
-        ) as f:  # if the file is empty then make it an empty dictionary
+        with open("settings/connected_apps.json", "r")as f:  # if the file is empty then make it an empty dictionary
             if f.read() == "":
                 apps = {}
             else:
@@ -151,11 +148,17 @@ while True:
             print("Playing", dictionary.get("websitelink"))
             system("start " + dictionary.get("websitelink"))
         else:
-            youtubequery = dictionary.get("songsearch")["title"].replace(" ", "+") + "+" + dictionary.get("songsearch")[
-                "author"].replace(" ", "+")
+            youtubequery = (
+                    dictionary.get("songsearch")["title"].replace(" ", "+")
+                    + "+"
+                    + dictionary.get("songsearch")["author"].replace(" ", "+")
+            )
             print("Playing", dictionary.get("songsearch")["title"])
             # open the youtube link
-            system("start " + f"https://www.youtube.com/results?search_query={youtubequery}")
+            system(
+                "start "
+                + f"https://www.youtube.com/results?search_query={youtubequery}"
+            )
     elif dictionary.get("weather") is True:
         print("Getting weather")
         # get the location from the dictionary
@@ -198,7 +201,7 @@ while True:
         search_results = search_results.replace("<th", "")
         print(f"Search result length after removing divs: {len(search_results)}")
 
-        prompt = f"""What is the answer to this query? Can you give me a JSON OBJECT NOT IN A CODE BLOCK in python with a dictionary with the keys: "releventdata" (list),"appname","websitelink","command","answer" (your response in a full sentence, leave as None if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Query:  \"{query}\" HTML: {search_results}"""
+        prompt = f"""Answer the query given the html data given, answer with a json object with an answer key Query:  \"{query}\" HTML: {search_results}"""
 
         response = openai.ChatCompletion.create(
             messages=[
@@ -206,7 +209,7 @@ while True:
             ],
             model="gpt-3.5-turbo",
             temperature=0,
-            max_tokens=200,
+            max_tokens=1000,
         )
 
         text = response["choices"][0]["message"]["content"]
