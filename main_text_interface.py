@@ -91,7 +91,9 @@ while True:
         # get the app path
         apppath = dictionary.get("apppath")
         # open the connected_apps.json file
-        with open("settings/connected_apps.json", "r")as f:  # if the file is empty then make it an empty dictionary
+        with open(
+                "settings/connected_apps.json", "r"
+        ) as f:  # if the file is empty then make it an empty dictionary
             if f.read() == "":
                 apps = {}
             else:
@@ -149,10 +151,10 @@ while True:
             system("start " + dictionary.get("websitelink"))
         else:
             youtubequery = (
-                    dictionary.get("songsearch")["title"].replace(" ", "+")
-                    + "+"
-                    + dictionary.get("songsearch")["author"].replace(" ", "+")
-            )
+    dictionary.get("songsearch")["title"].replace(" ", "+")
+    + "+"
+    + dictionary.get("songsearch")["author"].replace(" ", "+")
+)
             print("Playing", dictionary.get("songsearch")["title"])
             # open the youtube link
             system(
