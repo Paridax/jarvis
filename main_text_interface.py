@@ -1,13 +1,14 @@
 import scraper
 import dotenv
 from os import system
-from re import search
+from re import search, sub
 import json
 from subprocess import Popen
 import datetime
 from gtts import gTTS
 import playsound
 import openai
+import sys
 
 # Load the environment variables
 dotenv.load_dotenv()
@@ -16,6 +17,14 @@ dotenv.load_dotenv()
 API_KEY = dotenv.get_key(dotenv.find_dotenv(), "OPENAI_API_KEY")
 
 openai.api_key = API_KEY
+
+# make a command line interface debug flag with sys
+debug = False
+if len(sys.argv) > 1:
+    # check if --debug is in any of the command line arguments
+    if "--debug" in sys.argv:
+        debug = True
+        print("Debug mode enabled")
 
 
 def wait_then_parse_dictionary(result, prompt):
@@ -26,7 +35,8 @@ def wait_then_parse_dictionary(result, prompt):
         )
         f.write("\n")
 
-    print("response", result)
+    if debug:
+        print("response", result)
     # find the dictionary in the response
     # use regex to find the dictionary between { and }
     regex = r"\{[\s\S]*\}"
@@ -53,6 +63,8 @@ while True:
     message = input("> ")
     message = message.strip()
 
+    print(f"Asking ai model: {message}")
+
     prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: "action" (example categories: "conversation","open","execute","query","play","pause"), "weather" (weather related, boolean), location(region name if given), "keywords"(list), "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","songsearch"(song title and author if given),"gptoutput" (your response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
 
     result = openai.ChatCompletion.create(
@@ -66,20 +78,23 @@ while True:
 
     text = result["choices"][0]["message"]["content"]
 
-    # print the tokens used
-    print(f"Tokens used for completion: {result['usage']['completion_tokens']}")
-    print(f"Tokens used for prompt: {result['usage']['prompt_tokens']}")
+    # only print debug info if debug flag is set
+    if debug:
+        # print the tokens used
+        print(f"Tokens used for completion: {result['usage']['completion_tokens']}")
+        print(f"Tokens used for prompt: {result['usage']['prompt_tokens']}")
 
-    # print price of prompt and response in usd
-    print(f"Total cost in dollars: ${result['usage']['total_tokens'] * 0.000002}")
+        # print price of prompt and response in usd
+        print(f"Total cost in dollars: ${result['usage']['total_tokens'] * 0.000002}")
 
     dictionary = wait_then_parse_dictionary(text, prompt)
     # get the action
     action = dictionary.get("action")
-    print(f"Action: {action}")
+    if debug:
+        print(f"Action: {action}")
     if action == "conversation":
         print(dictionary.get("gptoutput"))
-    # if keywords has add and applist in it then add the app to the connected_apps.json file
+    # if keywords has added and applist in it then add the app to the connected_apps.json file
     elif "add" in dictionary.get("keywords") and (
             ("app" in dictionary.get("keywords") and "list" in dictionary.get("keywords"))
             or "app list" in dictionary.get("keywords")
@@ -155,20 +170,20 @@ while True:
                     + dictionary.get("songsearch")["author"].replace(" ", "+")
             )
             print("Playing", dictionary.get("songsearch")["title"])
-            # open the youtube link
+            # open the YouTube link
             system(
                 "start "
                 + f"https://www.youtube.com/results?search_query={youtubequery}"
             )
     elif dictionary.get("weather") is True:
-        print("Getting weather")
+        print("Getting weather...")
         # get the location from the dictionary
         location = dictionary.get("location")
         # get the weather
         weather = scraper.weather(location)
         # print the weather for the day
         print(
-            f"""Today's weather in {location}:\nTemperature: {weather["temp"]}°F\nConditions: {weather["weather"]}\nWind Speed: {weather["wind"]} mph\nHumidity: {weather["humidity"]}\nPrecipitation: {weather["precipitation"]}"""
+            f"""Today's weather in {location}:\nTemperature: {weather["temp"]}°F\nConditions: {weather["weather"]}\nWind Speed: {weather["wind"]}\nHumidity: {weather["humidity"]}\nPrecipitation: {weather["precipitation"]}"""
         )
     elif action == "query":
         if "time" in dictionary.get("keywords"):
@@ -192,15 +207,14 @@ while True:
 
         search_results = scraper.search(query, two_results=True)
 
-        print(f"Original search result length: {len(search_results)}")
-        # take away anything that is unneeded from the search results
-        search_results = search_results.replace("<div>", "")
-        search_results = search_results.replace("</div>", "")
-        search_results = search_results.replace("<tr>", "")
-        search_results = search_results.replace("<th>", "")
-        search_results = search_results.replace("</th>", "")
-        search_results = search_results.replace("<th", "")
-        print(f"Search result length after removing divs: {len(search_results)}")
+        if debug:
+            print(f"Original search result length: {len(search_results)}")
+
+        # remove everything between <> and </> from the search results
+        search_results = sub(r"<.*?>", "", search_results)
+
+        if debug:
+            print(f"Search result length after removing divs: {len(search_results)}")
 
         prompt = f"""Answer the query given the html data given, answer with a json object with an answer key Query:  \"{query}\" HTML: {search_results}"""
 
@@ -216,11 +230,13 @@ while True:
         text = response["choices"][0]["message"]["content"]
 
         # print price of prompt and response in usd
-        print(f"Total cost in dollars: ${response['usage']['total_tokens'] * 0.000002}")
+        if debug:
+            print(
+                f"Total cost in dollars: ${response['usage']['total_tokens'] * 0.000002}"
+            )
 
         dictionary = wait_then_parse_dictionary(text, prompt)
 
         # get the answer
         answer = dictionary.get("answer")
-        print("ANSWER:")
-        print(answer)
+        print(f"ANSWER: {answer}")
