@@ -1,4 +1,4 @@
-import scraper
+from google_interface import Google
 from os import system
 from re import search, sub
 import json
@@ -33,6 +33,9 @@ if not os.path.exists("settings/log.txt"):
 if not os.path.exists("settings/connected_apps.json"):
     with open("settings/connected_apps.json", "w") as f:
         pass
+
+# make google search object
+google_search = Google()
 
 
 def wait_then_parse_dictionary(result, prompt, debug=False):
@@ -76,7 +79,7 @@ def handle_request(message, debug=False, browser="www.google.com"):
     else:
         print("Just a moment...")
 
-    prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: "action" (example categories: "conversation","open","execute","query","play","pause"), "weather" (weather related, boolean), location(region name if given), "keywords"(list), "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","songsearch"(song title and author if given, in a string),"openimages"(if the user wants to open google search images),"gptoutput" (your response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
+    prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: "action" (example categories: "conversation","open","query","play","pause"), "weather" (weather related, boolean), location(region name if given), "keywords"(list), "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","songsearch"(song title and author if given, in a string),"openimages"(if the user wants to open google search images),"gptoutput" (your response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
 
     result = openai.ChatCompletion.create(
         messages=[
@@ -108,9 +111,9 @@ def handle_request(message, debug=False, browser="www.google.com"):
         print(dictionary.get("gptoutput"))
     # if keywords has added and applist in it then add the app to the connected_apps.json file
     elif "add" in dictionary.get("keywords") and (
-            ("app" in dictionary.get("keywords") and "list" in dictionary.get("keywords"))
-            or "app list" in dictionary.get("keywords")
-            or "applist" in dictionary.get("keywords")
+        ("app" in dictionary.get("keywords") and "list" in dictionary.get("keywords"))
+        or "app list" in dictionary.get("keywords")
+        or "applist" in dictionary.get("keywords")
     ):
         # get the app name
         appname = dictionary.get("appname").lower()
@@ -134,8 +137,8 @@ def handle_request(message, debug=False, browser="www.google.com"):
 
     # if keywords has remove and applist in it then remove the app from the connected_apps.json file
     elif "remove" in dictionary.get("keywords") and (
-            "applist" in dictionary.get("keywords")
-            or "app list" in dictionary.get("keywords")
+        "applist" in dictionary.get("keywords")
+        or "app list" in dictionary.get("keywords")
     ):
         # get the app name
         appname = dictionary.get("appname").lower()
@@ -180,15 +183,9 @@ def handle_request(message, debug=False, browser="www.google.com"):
                 system("start " + dictionary.get("websitelink"))
             else:
                 # get first link from search fullsearchquery
-                html_data = scraper.search(
-                    dictionary.get("fullsearchquery"), single_result=True
+                link = google_search.search(dictionary.get("fullsearchquery"))[0].get(
+                    "link"
                 )
-                # get the first https link from the html data not using scraper.py, it will be right after href=
-                try:
-                    link = search('href="https?://.*?"', html_data).group(0)[6:-1]
-                except AttributeError:
-                    print("Could not find a link to open")
-                    return
                 print("Opening", link)
                 system("start " + link)
     elif action == "play":
@@ -208,7 +205,7 @@ def handle_request(message, debug=False, browser="www.google.com"):
         # get the location from the dictionary
         location = dictionary.get("location")
         # get the weather
-        weather = scraper.weather(location)
+        weather = google_search.weather(location)
         # print the weather for the day
         print(
             f"""Today's weather in {location}:\nTemperature: {weather["temp"]}°F\nConditions: {weather["weather"]}\nWind Speed: {weather["wind"]}\nHumidity: {weather["humidity"]}\nPrecipitation: {weather["precipitation"]}"""
@@ -235,20 +232,9 @@ def handle_request(message, debug=False, browser="www.google.com"):
             else:
                 print("Searching the web...")
 
-            search_results = scraper.search(query, two_results=True)
+            search_results = google_search.search(query, text=True, links=5)
 
-            if debug:
-                print(f"Original search result length: {len(search_results)}")
-
-            # remove everything between <> and </> from the search results
-            search_results = sub(r"<.*?>", "", search_results)
-
-            if debug:
-                print(
-                    f"Search result length after removing divs: {len(search_results)}"
-                )
-
-            prompt = f"""Answer the query given the html data given, answer with a json object with an answer key Query:  \"{query}\" HTML: {search_results}"""
+            prompt = f"""answer the query given using the text given, only give the direct answer, do not repete the question or give background or extra information, it the prompt asks for a link make sure to return one, the text is from a google search of the query, at the end of the text will be links and thier corisponding header text, the query is {query}, the text is {search_results}"""
 
             response = openai.ChatCompletion.create(
                 messages=[
@@ -259,7 +245,7 @@ def handle_request(message, debug=False, browser="www.google.com"):
                 max_tokens=1000,
             )
 
-            text = response["choices"][0]["message"]["content"]
+            answer = response["choices"][0]["message"]["content"]
 
             # print price of prompt and response in usd
             if debug:
@@ -267,8 +253,4 @@ def handle_request(message, debug=False, browser="www.google.com"):
                     f"Total cost in dollars: ${response['usage']['total_tokens'] * 0.000002}"
                 )
 
-            dictionary = wait_then_parse_dictionary(text, prompt, debug=debug)
-
-            # get the answer
-            answer = dictionary.get("answer")
             print(f"ANSWER: {answer}")

@@ -34,17 +34,25 @@ class Google:
         daily_forecast = []
 
         for i in range(len(forecast)):
-            day = forecast[i].find_element(By.CLASS_NAME, "Z1VzSb").get_attribute("aria-label")
-            day_weather = forecast[i].find_element(By.CLASS_NAME, "uW5pk").get_attribute("alt")
+            day = (
+                forecast[i]
+                .find_element(By.CLASS_NAME, "Z1VzSb")
+                .get_attribute("aria-label")
+            )
+            day_weather = (
+                forecast[i].find_element(By.CLASS_NAME, "uW5pk").get_attribute("alt")
+            )
             high = forecast[i].find_elements(By.CLASS_NAME, "wob_t")[0]
             low = forecast[i].find_elements(By.CLASS_NAME, "wob_t")[-2]
 
-            daily_forecast.append({
-                "day": day,
-                "weather": day_weather,
-                "high": high.text,
-                "low": low.text,
-            })
+            daily_forecast.append(
+                {
+                    "day": day,
+                    "weather": day_weather,
+                    "high": high.text,
+                    "low": low.text,
+                }
+            )
 
         data = {
             "temp": temperature_f.text,
@@ -97,10 +105,12 @@ class Google:
             for anchor in anchors:
                 try:
                     link = anchor.get_attribute("href")
-                    verified_links.append({
-                        "text": anchor.text.replace("\n", " "),
-                        "link": link,
-                    })
+                    verified_links.append(
+                        {
+                            "text": anchor.text.replace("\n", " "),
+                            "link": link,
+                        }
+                    )
                     if link.startswith("http"):
                         pass
                 except Exception as e:
@@ -117,7 +127,11 @@ class Google:
             return linkData
         elif text and links:
             # join the results into a single string
-            return textData + "\nPAGE LINKS: " + "\n".join([f"{link['text']}: {link['link']}" for link in linkData])
+            return (
+                textData
+                + "\nPAGE LINKS: "
+                + "\n".join([f"{link['text']}: {link['link']}" for link in linkData])
+            )
 
         verified_results = []
 
@@ -125,18 +139,22 @@ class Google:
             try:
                 title = result.find_element(By.TAG_NAME, "h3").text
                 link = result.find_element(By.TAG_NAME, "a").get_attribute("href")
-                description = result.find_element(By.XPATH, ".//div/div/div[2]/div").text
+                description = result.find_element(
+                    By.XPATH, ".//div/div/div[2]/div"
+                ).text
 
                 # print("title)
                 # print(link)
                 # print(description)
                 # print("", end="")
 
-                verified_results.append({
-                    "title": title,
-                    "link": link,
-                    "description": description,
-                })
+                verified_results.append(
+                    {
+                        "title": title,
+                        "link": link,
+                        "description": description,
+                    }
+                )
             except Exception as e:
                 pass
 
