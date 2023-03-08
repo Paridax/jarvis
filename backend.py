@@ -2,7 +2,6 @@ from google_interface import Google
 from os import system
 from re import search, sub
 import json
-from subprocess import Popen
 import datetime
 from gtts import gTTS
 import playsound
@@ -125,145 +124,53 @@ def handle_request(message, debug=False, browser="www.google.com", speak=False):
         print(f"Action: {action}")
     if action == "conversation":
         print(dictionary.get("gptoutput"))
-    # if keywords has added and applist in it then add the app to the connected_apps.json file
-    elif "add" in dictionary.get("keywords") and (
-        ("app" in dictionary.get("keywords") and "list" in dictionary.get("keywords"))
-        or "app list" in dictionary.get("keywords")
-        or "applist" in dictionary.get("keywords")
-    ):
-        # get the app name
-        appname = dictionary.get("appname").lower()
-        # get the app path
-        apppath = dictionary.get("apppath")
-        print(f"Adding {appname} to the list of connected apps.")
-        # print if the connected_apps.json file doesn't exist
-        if not os.path.exists("settings/connected_apps.json"):
-            print("The connected_apps.json file doesn't exist.")
-        else:
-            print("The connected_apps.json file exists.")
-        # load the connected_apps.json file using json
-        with open("settings/connected_apps.json", "r") as f:
-            apps = json.load(f)
-        # add the app name and path to the json file
-        apps[appname] = apppath
-        # save the json file
-        with open("settings/connected_apps.json", "w") as f:
-            json.dump(apps, f)
-        print("Added", appname, "to the list of connected apps.")
 
-    # if keywords has remove and applist in it then remove the app from the connected_apps.json file
-    elif "remove" in dictionary.get("keywords") and (
-        "applist" in dictionary.get("keywords")
-        or "app list" in dictionary.get("keywords")
-    ):
-        # get the app name
-        appname = dictionary.get("appname").lower()
-        # open the connected_apps.json file
-        with open("settings/connected_apps.json", "r") as f:
-            apps = json.load(f)
-        # remove the app name and path from the json file
-        del apps[appname]
-        # save the json file
-        with open("settings/connected_apps.json", "w") as f:
-            json.dump(apps, f)
-        print("Removed", appname, "from the list of connected apps.")
-    elif dictionary.get("openimages") is True:
-        # open the Google search with the fullsearchquery
-        speak_message("Opening Google search for " + dictionary.get("fullsearchquery"), out_loud=speak)
-        system(
-            "start "
-            + f"https://{browser}/images?q={dictionary.get('fullsearchquery').replace(' ', '+')}"
-        )
-    elif action == "open":
-        # read list of connected apps from json file
-        with open("settings/connected_apps.json", "r") as f:
-            apps = json.load(f)
-        # get the app name
-        appname = dictionary.get("appname")
-        if appname is None:
-            appname = None
-        else:
-            appname = appname.lower()
-        # if the app name is in the list of connected apps then open it
-        if appname in apps:
-            print(f"Opening {appname} at {apps[appname]}")
-            # run the executable and add quotes around the path, using subprocess
-            # if open fails then print an error message
+    # make settings dictionary
+    settings = {
+        "debug": debug,
+        "out_loud": speak,
+        "openai_object": openai,
+        "google_search": google_search,
+        "browser": browser,
+    }
+
+    # loop through app packages and run each
+    for app in package_list:
+        try:
+            # run the app and get the response
+            response = eval(f"{app}(dictionary, settings)")
+            # print the response
+            print(f"{app} response: {response}")
+            # if the responce is true then break the loop
+            if response:
+                break
+        except:
+            # try without the settings
             try:
-                Popen([f"{apps[appname]}"])
-            except:
-                print(f"Could not open {appname} at {apps[appname]}")
-        else:
-            if dictionary.get("websitelink") is not None:
-                print("Opening", dictionary.get("websitelink"), "in your browser.")
-                system("start " + dictionary.get("websitelink"))
-            else:
-                # get first link from search fullsearchquery
-                link = google_search.search(dictionary.get("fullsearchquery"))[0].get(
-                    "link"
+                response = eval(f"{app}(dictionary)")
+                # print the response
+                print(f"{app} response: {response}")
+                # if the responce is true then break the loop
+                if response:
+                    break
+            except Exception as exception:
+                print(f"Error running {app}: {exception}")
+
+
+# load app packages using os.walk
+package_list = []
+for root, dirs, files in os.walk("packages"):
+    for app in files:
+        if app.endswith(".py") and app.startswith("jarvis_"):
+            try:
+                # import the app`using the root and app name
+                root = root.replace("/", ".").replace("\\", ".")
+                exec(
+                    f"from {root.replace('/', '.')}.{app[:-3]} import {app[:-3].replace('jarvis_', '')}"
                 )
-                speak_message(f"Opening {link}", out_loud=speak)
-                system("start " + link)
-    elif action == "play":
-        if dictionary.get("websitelink") is not None:
-            print("Playing", dictionary.get("websitelink"), "in your browser.")
-            if debug:
-                print(f"""Playing: {dictionary.get("websitelink")}""")
-            speak_message("Opening the link in your browser...", out_loud=speak)
-            system("start " + dictionary.get("websitelink"))
-        else:
-            # get the first link on google for the search and open it
-            link = google_search.search(dictionary.get("songsearch"))[0].get("link")
-            if debug:
-                print(f"Playing: {link}")
-            speak_message("Opening the link in your browser...", out_loud=speak)
-            # open the link using system
-            system("start " + link)
+                package_list.append(app[:-3].replace("jarvis_", ""))
+            except Exception as e:
+                print(f"Error loading {app}: {e}")
 
-    elif dictionary.get("weather") is True:
-        print("Getting weather...")
-        # get the location from the dictionary
-        location = dictionary.get("location")
-        # get the weather
-        weather = google_search.weather(location)
-        # print the weather for the day
-        speak_message(f"Today's weather in {location}", out_loud=speak)
-        print(
-            f"""Today's weather in {location}:\nTemperature: {weather["temp"]}°F\nConditions: {weather["weather"]}\nWind Speed: {weather["wind"]}\nHumidity: {weather["humidity"]}\nPrecipitation: {weather["precipitation"]}"""
-        )
-    elif action == "query":
-        if "time" in dictionary.get("keywords"):
-            # get the current time and print
-            speak_message("The time is " + str(datetime.datetime.now().strftime("%H:%M")), out_loud=speak)
-        else:
-            query = dictionary.get("fullsearchquery")
-            if debug:
-                print("Searching for: ", query)
-            else:
-                print("Searching the web...")
-
-            search_results = google_search.search(query, text=True, links=5)
-
-            prompt = f"""answer the query given using the text given, only give the direct answer, do not repete the question or give background or extra information, it the prompt asks for a link make sure to return one, the text is from a google search of the query, at the end of the text will be links and thier corisponding header text, the query is {query}, the text is {search_results}"""
-
-            response = openai.ChatCompletion.create(
-                messages=[
-                    {"role": "user", "content": prompt},
-                ],
-                model="gpt-3.5-turbo",
-                temperature=0,
-                max_tokens=1000,
-            )
-
-            answer = response["choices"][0]["message"]["content"]
-
-            # print price of prompt and response in usd
-            if debug:
-                print(
-                    f"Total cost in dollars: ${response['usage']['total_tokens'] * 0.000002}"
-                )
-
-            if debug:
-                print(f"ANSWER: {answer}")
-            else:
-                print(answer)
+# print the list of loaded apps
+# print(f"Number of packages loaded: {len(package_list)}: {package_list}")
