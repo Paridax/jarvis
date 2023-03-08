@@ -50,13 +50,13 @@ Jarvis requires an OpenAI API keys to perform certain tasks, such as answering i
 
 Jarvis is a work in progress and is not yet complete. **The following features are currently supported:**
 - [x] Opening websites
-- [x] Opening computer programs, but you have to link them by proving the executable path
+- [x] Opening computer programs, but you have to link them by providing the executable path
 - [x] Answering internet queries
 - [x] Opening image searches in a specified browser. The default base URL is: `www.google.com`
+- [x] Opening music
+- [x] Opening videos
 
 **The following features are not yet supported:**
-- [ ] Opening music
-- [ ] Opening videos
 - [ ] Opening files in a specified program
 - [ ] Modifying local files
 - [ ] Searching for installed programs
