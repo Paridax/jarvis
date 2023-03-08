@@ -18,6 +18,22 @@ API_KEY = dotenv.get_key(dotenv.find_dotenv(), "OPENAI_API_KEY")
 
 openai.api_key = API_KEY
 
+# generate directories and log files
+# check if directory exists
+if not os.path.exists("settings"):
+    # if not, create it
+    system("mkdir settings")
+
+# if no log file exists, create it
+if not os.path.exists("settings/log.txt"):
+    with open("settings/log.txt", "w") as f:
+        pass
+
+# if no connected apps file exists, create it
+if not os.path.exists("settings/connected_apps.json"):
+    with open("settings/connected_apps.json", "w") as f:
+        pass
+
 
 def wait_then_parse_dictionary(result, prompt, debug=False):
     # access log file and save prompt and response
@@ -54,8 +70,11 @@ def wait_then_parse_dictionary(result, prompt, debug=False):
     return dictionary
 
 
-def backend(message, debug=False, browser="www.google.com"):
-    print(f"Asking ai model: {message}")
+def handle_request(message, debug=False, browser="www.google.com"):
+    if debug:
+        print(f"Asking Jarvis (GPT 3.5 AI Model): {message}")
+    else:
+        print("Just a moment...")
 
     prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: "action" (example categories: "conversation","open","execute","query","play","pause"), "weather" (weather related, boolean), location(region name if given), "keywords"(list), "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","songsearch"(song title and author if given, in a string),"openimages"(if the user wants to open google search images),"gptoutput" (your response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
 
@@ -211,7 +230,10 @@ def backend(message, debug=False, browser="www.google.com"):
             os.remove("time.mp3")
         else:
             query = dictionary.get("fullsearchquery")
-            print("Querying", query)
+            if debug:
+                print("Searching for: ", query)
+            else:
+                print("Searching the web...")
 
             search_results = scraper.search(query, two_results=True)
 
