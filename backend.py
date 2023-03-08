@@ -18,6 +18,22 @@ API_KEY = dotenv.get_key(dotenv.find_dotenv(), "OPENAI_API_KEY")
 
 openai.api_key = API_KEY
 
+# generate directories and log files
+# check if directory exists
+if not os.path.exists("settings"):
+    # if not, create it
+    system("mkdir settings")
+
+# if no log file exists, create it
+if not os.path.exists("settings/log.txt"):
+    with open("settings/log.txt", "w") as f:
+        pass
+
+# if no connected apps file exists, create it
+if not os.path.exists("settings/connected_apps.json"):
+    with open("settings/connected_apps.json", "w") as f:
+        pass
+
 
 def wait_then_parse_dictionary(result, prompt, debug=False):
     # access log file and save prompt and response
@@ -39,8 +55,6 @@ def wait_then_parse_dictionary(result, prompt, debug=False):
         # replace double backslashes with single forward slashes
         dictionary = sub(r"\\", "/", dictionary)
         # convert to dictionary
-        if debug:
-            print("dictionary: ", dictionary)
         dictionary = json.loads(dictionary)
         # revert quoted none to none and quoted false to false
         for key in dictionary:
@@ -56,10 +70,13 @@ def wait_then_parse_dictionary(result, prompt, debug=False):
     return dictionary
 
 
-def backend(message, debug=False):
-    print(f"Asking ai model: {message}")
+def handle_request(message, debug=False, browser="www.google.com"):
+    if debug:
+        print(f"Asking Jarvis (GPT 3.5 AI Model): {message}")
+    else:
+        print("Just a moment...")
 
-    prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: "action" (example categories: "conversation","open","execute","query","play","pause"), "weather" (weather related, boolean), location(region name if given), "keywords"(list), "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","songsearch"(song title and author if given, in a string),"gptoutput" (your response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
+    prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: "action" (example categories: "conversation","open","execute","query","play","pause"), "weather" (weather related, boolean), location(region name if given), "keywords"(list), "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","songsearch"(song title and author if given, in a string),"openimages"(if the user wants to open google search images),"gptoutput" (your response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
 
     result = openai.ChatCompletion.create(
         messages=[
@@ -100,14 +117,14 @@ def backend(message, debug=False):
         # get the app path
         apppath = dictionary.get("apppath")
         print(f"Adding {appname} to the list of connected apps")
-        # open the connected_apps.json file
-        with open(
-                "settings\\connected_apps.json", "r"
-        ) as f:  # if the file is empty then make it an empty dictionary
-            if f.read() == "":
-                apps = {}
-            else:
-                apps = json.load(f)
+        # print if the connected_apps.json file doesn't exist
+        if not os.path.exists("settings/connected_apps.json"):
+            print("The connected_apps.json file doesn't exist")
+        else:
+            print("The connected_apps.json file exists")
+        # load the connected_apps.json file using json
+        with open("settings/connected_apps.json", "r") as f:
+            apps = json.load(f)
         # add the app name and path to the json file
         apps[appname] = apppath
         # save the json file
@@ -131,7 +148,13 @@ def backend(message, debug=False):
         with open("settings/connected_apps.json", "w") as f:
             json.dump(apps, f)
         print("Removed", appname, "from the list of connected apps")
-
+    elif dictionary.get("openimages") is True:
+        # open the Google search with the fullsearchquery
+        print("Opening Google search for", dictionary.get("fullsearchquery"))
+        system(
+            "start "
+            + f"https://{browser}/images?q={dictionary.get('fullsearchquery').replace(' ', '+')}"
+        )
     elif action == "open":
         # read list of connected apps from json file
         with open("settings/connected_apps.json", "r") as f:
@@ -207,8 +230,10 @@ def backend(message, debug=False):
             os.remove("time.mp3")
         else:
             query = dictionary.get("fullsearchquery")
-            url = dictionary.get("searchcompletetemplateurl")
-            print("Querying", query)
+            if debug:
+                print("Searching for: ", query)
+            else:
+                print("Searching the web...")
 
             search_results = scraper.search(query, two_results=True)
 

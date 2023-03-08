@@ -1,6 +1,7 @@
-from backend import backend
+from backend import handle_request
 import speech_recognition as sr
 import os
+import sys
 
 # make keyword
 keyword = "voice assistant"
@@ -27,8 +28,45 @@ if len(sys.argv) > 1:
         debug = True
         print("Debug mode enabled")
 
+
+def listen_for_key_phrase(key_phrase, r):
+    print(f"Listening for key phrase {key_phrase}...")
+    if debug:
+        print(f"Listener energy threshold: {r.energy_threshold}")
+    # Use microphone as source
+    with sr.Microphone() as source:
+        while True:
+            try:
+                # Listen for speech
+                audio = r.listen(source, timeout=1, phrase_time_limit=10)
+
+                try:
+                    # Recognize speech using Google Speech Recognition
+                    text = r.recognize_google(audio)
+                    if debug:
+                        print(f"You said: {text}")
+
+                    # Check if key phrase is in recognized text
+                    if key_phrase in text.lower():
+                        print(f"Key phrase '{key_phrase}' recognized")
+                        # find the end index of the key phrase
+                        end_index = text.lower().find(key_phrase) + len(key_phrase)
+                        # return the text after the key phrase
+                        return text[end_index:]
+                except sr.UnknownValueError:
+                    print("Could not understand audio")
+                except sr.RequestError as e:
+                    print(
+                        f"Could not request results from Google Speech Recognition service; {e}"
+                    )
+            except sr.WaitTimeoutError:
+                print("Timeout")
+
+
 while True:
     text = listen_for_key_phrase(keyword, r)
+
+    print("You asked: " + text)
 
     message = text.lower().replace(keyword, "").strip()
 
@@ -37,4 +75,4 @@ while True:
         continue
 
     # send the message to the backend
-    backend(message, debug=debug)
+    handle_request(message, debug=debug)
