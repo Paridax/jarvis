@@ -5,7 +5,7 @@ Jarvis is a Python program that uses AI language learning models to interpret th
 This README file provides instructions for installing and running Jarvis, as well as information on obtaining the necessary API keys to use certain features of the program.
 
 ### DISCLAIMER
-**This program will cost money to run, but very little. The OpenAI API costs fractions of cents; something like 0.2 CENTS per request, and a new OpenAI API account should have a free trial of $18 in credits. However, if you are using this program for a long time, you will need to pay for the API.**
+**This program will cost money to run, but very little. The OpenAI API costs fractions of cents—something like 0.2 CENTS per request—and a new OpenAI API account should have a free trial of $18 in credits. However, if you are using this program for a long time, you will need to pay for the API.**
 
 ## Installation
 
