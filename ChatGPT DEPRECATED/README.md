@@ -1,1 +1,0 @@
-# GPT Voice Assistant

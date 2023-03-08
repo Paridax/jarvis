@@ -1,5 +1,5 @@
 import dotenv
-from backend import backend
+from backend import handle_request
 import openai
 import sys
 
@@ -28,4 +28,4 @@ while True:
         continue
 
     # send the message to the backend
-    backend(message, debug=debug, browser="search.brave.com")
+    handle_request(message, debug=debug, browser="www.google.com")
