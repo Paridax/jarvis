@@ -1,6 +1,8 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+import re
+
 
 class Google:
     def __init__(self, headless=True):
@@ -57,12 +59,18 @@ class Google:
 
         return data
 
-    def search(self, query):
+    def search(self, query, text=False, links=None):
         """
         Search for a query on Google.
+        :param links:
+        :param text:
         :param query:
         :return:
         """
+
+        textData = None
+        linkData = None
+
         # remove unnecessary spaces
         query = query.strip().replace(" ", "%20")
 
@@ -72,6 +80,45 @@ class Google:
         # get the search results
         results = self.driver.find_element(By.ID, "rcnt")
 
+        if text:
+            # remove all newlines and replace with semicolons
+            cleaned = results.text.replace("\n", "  ")
+            # use regex to remove all extra spaces and replace with a single space
+            cleaned = re.sub(" +", " ", cleaned)
+
+            textData = cleaned
+
+        if links is not None:
+            # get all anchors
+            anchors = results.find_elements(By.TAG_NAME, "a")
+
+            verified_links = []
+
+            for anchor in anchors:
+                try:
+                    link = anchor.get_attribute("href")
+                    verified_links.append({
+                        "text": anchor.text.replace("\n", " "),
+                        "link": link,
+                    })
+                    if link.startswith("http"):
+                        pass
+                except Exception as e:
+                    pass
+            # trim the list to the number of links wanted
+            if len(verified_links) > links:
+                verified_links = verified_links[:links]
+
+            linkData = verified_links
+
+        if text and not links:
+            return textData
+        elif links and not text:
+            return linkData
+        elif text and links:
+            # join the results into a single string
+            return textData + "\nPAGE LINKS: " + "\n".join([f"{link['text']}: {link['link']}" for link in linkData])
+
         verified_results = []
 
         for result in results.find_elements(By.CLASS_NAME, "MjjYud"):
@@ -80,10 +127,10 @@ class Google:
                 link = result.find_element(By.TAG_NAME, "a").get_attribute("href")
                 description = result.find_element(By.XPATH, ".//div/div/div[2]/div").text
 
-                # print(title)
+                # print("title)
                 # print(link)
                 # print(description)
-                # print("=====================================")
+                # print("", end="")
 
                 verified_results.append({
                     "title": title,
@@ -102,4 +149,4 @@ if __name__ == "__main__":
     g = Google()
     # weather = g.weather("New York")
     # print(weather)
-    print(g.search("joe biden age")[0].get("link"))
+    print(g.search("joe biden age", text=True, links=5))
