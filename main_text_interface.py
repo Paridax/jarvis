@@ -28,4 +28,4 @@ while True:
         continue
 
     # send the message to the backend
-    backend(message, debug=debug)
+    backend(message, debug=debug, browser="search.brave.com")
