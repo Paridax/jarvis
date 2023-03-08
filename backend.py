@@ -38,6 +38,23 @@ if not os.path.exists("settings/connected_apps.json"):
 google_search = Google()
 
 
+def speak_message(message, out_loud=True):
+    print(message)
+    if not out_loud:
+        return
+
+    # make text to speech object
+    tts = gTTS(
+        text=message,
+        lang="en",
+    )
+    tts.save("time.mp3")
+    # get current path
+    path = os.path.dirname(os.path.abspath(__file__))
+    playsound.playsound(f"{path}\\time.mp3")
+    os.remove("time.mp3")
+
+
 def wait_then_parse_dictionary(result, prompt, debug=False):
     # access log file and save prompt and response
     with open("settings/log.txt", "a") as f:
@@ -73,11 +90,10 @@ def wait_then_parse_dictionary(result, prompt, debug=False):
     return dictionary
 
 
-def handle_request(message, debug=False, browser="www.google.com"):
+def handle_request(message, debug=False, browser="www.google.com", speak=False):
     if debug:
         print(f"Asking Jarvis (GPT 3.5 AI Model): {message}")
-    else:
-        print("Just a moment...")
+    speak_message("Just a moment...", out_loud=speak)
 
     prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: "action" (example categories: "conversation","open","query","play","pause"), "weather" (weather related, boolean), location(region name if given), "keywords"(list), "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","songsearch"(song title and author if given, in a string),"openimages"(if the user wants to open google search images),"gptoutput" (your response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
 
@@ -119,12 +135,12 @@ def handle_request(message, debug=False, browser="www.google.com"):
         appname = dictionary.get("appname").lower()
         # get the app path
         apppath = dictionary.get("apppath")
-        print(f"Adding {appname} to the list of connected apps")
+        print(f"Adding {appname} to the list of connected apps.")
         # print if the connected_apps.json file doesn't exist
         if not os.path.exists("settings/connected_apps.json"):
-            print("The connected_apps.json file doesn't exist")
+            print("The connected_apps.json file doesn't exist.")
         else:
-            print("The connected_apps.json file exists")
+            print("The connected_apps.json file exists.")
         # load the connected_apps.json file using json
         with open("settings/connected_apps.json", "r") as f:
             apps = json.load(f)
@@ -133,7 +149,7 @@ def handle_request(message, debug=False, browser="www.google.com"):
         # save the json file
         with open("settings/connected_apps.json", "w") as f:
             json.dump(apps, f)
-        print("Added", appname, "to the list of connected apps")
+        print("Added", appname, "to the list of connected apps.")
 
     # if keywords has remove and applist in it then remove the app from the connected_apps.json file
     elif "remove" in dictionary.get("keywords") and (
@@ -150,10 +166,10 @@ def handle_request(message, debug=False, browser="www.google.com"):
         # save the json file
         with open("settings/connected_apps.json", "w") as f:
             json.dump(apps, f)
-        print("Removed", appname, "from the list of connected apps")
+        print("Removed", appname, "from the list of connected apps.")
     elif dictionary.get("openimages") is True:
         # open the Google search with the fullsearchquery
-        print("Opening Google search for", dictionary.get("fullsearchquery"))
+        speak_message("Opening Google search for " + dictionary.get("fullsearchquery"), out_loud=speak)
         system(
             "start "
             + f"https://{browser}/images?q={dictionary.get('fullsearchquery').replace(' ', '+')}"
@@ -179,27 +195,31 @@ def handle_request(message, debug=False, browser="www.google.com"):
                 print(f"Could not open {appname} at {apps[appname]}")
         else:
             if dictionary.get("websitelink") is not None:
-                print("Opening", dictionary.get("websitelink"))
+                print("Opening", dictionary.get("websitelink"), "in your browser.")
                 system("start " + dictionary.get("websitelink"))
             else:
                 # get first link from search fullsearchquery
                 link = google_search.search(dictionary.get("fullsearchquery"))[0].get(
                     "link"
                 )
-                print("Opening", link)
+                speak_message(f"Opening {link}", out_loud=speak)
                 system("start " + link)
     elif action == "play":
         if dictionary.get("websitelink") is not None:
-            print("Playing", dictionary.get("websitelink"))
+            print("Playing", dictionary.get("websitelink"), "in your browser.")
+            if debug:
+                print(f"""Playing: {dictionary.get("websitelink")}""")
+            speak_message("Opening the link in your browser...", out_loud=speak)
             system("start " + dictionary.get("websitelink"))
         else:
-            youtubequery = dictionary.get("songsearch").replace(" ", "+")
-            print("Playing", dictionary.get("songsearch"))
-            # open the YouTube link
-            system(
-                "start "
-                + f"https://www.youtube.com/results?search_query={youtubequery}"
-            )
+            # get the first link on google for the search and open it
+            link = google_search.search(dictionary.get("songsearch"))[0].get("link")
+            if debug:
+                print(f"Playing: {link}")
+            speak_message("Opening the link in your browser...", out_loud=speak)
+            # open the link using system
+            system("start " + link)
+
     elif dictionary.get("weather") is True:
         print("Getting weather...")
         # get the location from the dictionary
@@ -207,24 +227,14 @@ def handle_request(message, debug=False, browser="www.google.com"):
         # get the weather
         weather = google_search.weather(location)
         # print the weather for the day
+        speak_message(f"Today's weather in {location}", out_loud=speak)
         print(
             f"""Today's weather in {location}:\nTemperature: {weather["temp"]}°F\nConditions: {weather["weather"]}\nWind Speed: {weather["wind"]}\nHumidity: {weather["humidity"]}\nPrecipitation: {weather["precipitation"]}"""
         )
     elif action == "query":
         if "time" in dictionary.get("keywords"):
             # get the current time and print
-            print("The time is", datetime.datetime.now().strftime("%H:%M"))
-
-            # say the time
-            tts = gTTS(
-                text=f"The time is {datetime.datetime.now().strftime('%H:%M')}",
-                lang="en",
-            )
-            tts.save("time.mp3")
-            # get current path
-            path = os.path.dirname(os.path.abspath(__file__))
-            playsound.playsound(f"{path}\\time.mp3")
-            os.remove("time.mp3")
+            speak_message("The time is " + str(datetime.datetime.now().strftime("%H:%M")), out_loud=speak)
         else:
             query = dictionary.get("fullsearchquery")
             if debug:
@@ -253,4 +263,7 @@ def handle_request(message, debug=False, browser="www.google.com"):
                     f"Total cost in dollars: ${response['usage']['total_tokens'] * 0.000002}"
                 )
 
-            print(f"ANSWER: {answer}")
+            if debug:
+                print(f"ANSWER: {answer}")
+            else:
+                print(answer)
