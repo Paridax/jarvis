@@ -83,8 +83,8 @@ def wait_then_parse_dictionary(result, prompt, debug=False):
                 dictionary[key] = False
     except AttributeError:
         dictionary = {
-            "action": "conversation",
-            "gptoutput": "There was an error parsing the dictionary. Please try again.",
+            "action": "error",
+            "output": "There was an error parsing the dictionary. Please try again.",
         }
     return dictionary
 
@@ -94,7 +94,7 @@ def handle_request(message, debug=False, browser="www.google.com", speak=False):
         print(f"Asking Jarvis (GPT 3.5 AI Model): {message}")
     speak_message("Just a moment...", out_loud=speak)
 
-    prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: "action" (example categories: "conversation","open","query","play","pause"), "weather" (weather related, boolean), location(region name if given), "keywords"(list), "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","songsearch"(song title and author if given, in a string),"openimages"(if the user wants to open google search images),"gptoutput" (your response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
+    prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: "action" (example categories: "conversation"(if the user wants to chat with chatgpt),"open","query","play","pause"), "weather" (weather related, boolean), location(region name if given), "keywords"(list), "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","songsearch"(song title and author if given, in a string),"openimages"(if the user wants to open google search images),"gptoutput" (your response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
 
     result = openai.ChatCompletion.create(
         messages=[
@@ -117,19 +117,21 @@ def handle_request(message, debug=False, browser="www.google.com", speak=False):
         print(f"Total cost in dollars: ${result['usage']['total_tokens'] * 0.000002}")
 
     dictionary = wait_then_parse_dictionary(text, prompt, debug=debug)
+    if dictionary.get("action") == "error":
+        print(dictionary.get("output"))
+        return
+
     # get the action
     action = dictionary.get("action")
 
     if debug:
         print(f"Action: {action}")
-    if action == "conversation":
-        print(dictionary.get("gptoutput"))
 
     # make settings dictionary
     settings = {
         "debug": debug,
         "out_loud": speak,
-        "openai_object": openai,
+        "openai_key": API_KEY,
         "google_search": google_search,
         "browser": browser,
     }

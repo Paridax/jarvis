@@ -25,3 +25,4 @@ def open_app(dictionary):
             return True
         else:
             return False
+    return False

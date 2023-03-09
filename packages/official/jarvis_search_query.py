@@ -1,8 +1,12 @@
 from backend import speak_message
 import datetime
+import openai
 
 
 def search_query(dictionary, settings):
+    # load openai api key
+    openai.api_key = settings["openai_key"]
+
     if dictionary["action"] == "query":
         if "time" in dictionary.get("keywords"):
             # get the current time and print
@@ -21,7 +25,7 @@ def search_query(dictionary, settings):
 
             prompt = f"""answer the query given using the text given, only give the direct answer, do not repete the question or give background or extra information, it the prompt asks for a link make sure to return one, the text is from a google search of the query, at the end of the text will be links and thier corisponding header text, the query is {query}, the text is {search_results}"""
 
-            response = settings["openai_object"].ChatCompletion.create(
+            response = openai.ChatCompletion.create(
                 messages=[
                     {"role": "user", "content": prompt},
                 ],
