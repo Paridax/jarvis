@@ -1,5 +1,0 @@
-python-dotenv~=0.17.1
-selenium~=4.7.2
-playsound~=1.2.2
-gTTS~=2.3.1
-openai
