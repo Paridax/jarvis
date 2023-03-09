@@ -78,7 +78,7 @@ this is the documentation on how to write custom packages that extend the main p
 4. your main file must start wil jarvis_ as this is used to detect main package files
 5. you must have at least one arg in your function, if it takes one arg the dictionary will be passed, if it takes 2 then the dictionary and current settings will be passed.
 
-# INFO:
+### INFO:
 The dictionary comes in the following format:
 ```py
 {
