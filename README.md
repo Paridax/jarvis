@@ -55,6 +55,7 @@ Jarvis is a work in progress and is not yet complete. **The following features a
 - [x] Opening image searches in a specified browser. The default base URL is: `www.google.com`
 - [x] Opening music
 - [x] Opening videos
+- [x] Package API, community created addons can be easly created
 
 **The following features are not yet supported:**
 - [ ] Opening files in a specified program
@@ -62,6 +63,49 @@ Jarvis is a work in progress and is not yet complete. **The following features a
 - [ ] Searching for installed programs
 - [ ] Taking over the world
 
+## Packages
+this is the documentation on how to write custom packages that extend the main program, your package will have to have the following:
+1. return a True or False, this is used to tell the main program if it needs to skip all future packages, see official packages for implamentation.
+2. must be in own folder for example the following structure:
+-- packages
+    -- official
+    -- mypackage
+        -- mypackage.py
+        -- exewrapper.exe (example file that could be in your package folder)
+3. your pacage MUST have a function inside of it that is the name of the package file ex: jarvis_mypackage.py's function would be def mypackage(dictionary, settings):
+4. your main file must start wil jarvis_ as this is used to detect main package files
+5. you must have at least one arg in your function, if it takes one arg the dictionary will be passed, if it takes 2 then the dictionary and current settings will be passed.
+INFO:
+The dictionary comes in the following format:
+```py
+{
+  "action": "",
+  "weather": ,
+  "location": ,
+  "keywords": ,
+  "searchcompletetemplateurl": ,
+  "appname": ,
+  "apppath": ,
+  "websitelink": ,
+  "target": ,
+  "fullsearchquery": ,
+  "songsearch": ,
+  "openimages": ,
+  "gptoutput": ,
+}
+```
+run with debug mode and try some inputs to get a feel of what the outputs of this dictionary are.
+
+The format of settings is as follows:
+```py
+{
+    "debug": debug, (if the program should print debug data)
+    "out_loud": speak, (if print data should be spoken)
+    "openai_key": API_KEY, (openai api key)
+    "google_search": google_search, (the google search object, use this to get links and data from the internet)
+    "browser": browser, (the prefered browser of the user)
+}
+```
 ## Conclusion
 
 Jarvis is a powerful tool that can make your life easier by performing tasks quickly and efficiently. By following the instructions in this README file, you can install and run Jarvis on your own machine and take advantage of its many features.
