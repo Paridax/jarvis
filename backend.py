@@ -196,6 +196,9 @@ for root, dirs, files in os.walk("packages"):
             # remove duplicates from the list
             requirements = list(dict.fromkeys(requirements))
 
+# make package_manager first in the list
+package_list.insert(0, package_list.pop(package_list.index("package_manager")))
+
 # install requirements
 if requirements:
     # get installed packages using terminal command
