@@ -7,7 +7,7 @@ def gpt_chat(dictionary, settings):
 
     # if the action is conversation then run the gpt chat
     if dictionary.get("action") == "conversation":
-        chat = [{"role": "system", "content": "You are a helpful assistant who was created by DarkIndustries."}]
+        chat = [{"role": "system", "content": "You are a helpful assistant who was created by DarkIndustries, you cannot previde internet funtions, tell the user to go back to the regular interface if they ask for anything internet related"}]
         print("Running gpt chat... (type 'quit' to exit)")
         prompt = ""
 
