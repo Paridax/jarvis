@@ -14,17 +14,17 @@ def edit_connected_apps(dictionary):
         apppath = dictionary.get("apppath")
         print(f"Adding {appname} to the list of connected apps.")
         # print if the connected_apps.json file doesn't exist
-        if not os.path.exists("../../settings/connected_apps.json"):
+        if not os.path.exists("settings/connected_apps.json"):
             print("The connected_apps.json file doesn't exist.")
         else:
             print("The connected_apps.json file exists.")
         # load the connected_apps.json file using json
-        with open("../../settings/connected_apps.json", "r") as f:
+        with open("settings/connected_apps.json", "r") as f:
             apps = json.load(f)
         # add the app name and path to the json file
         apps[appname] = apppath
         # save the json file
-        with open("../../settings/connected_apps.json", "w") as f:
+        with open("settings/connected_apps.json", "w") as f:
             json.dump(apps, f)
         print("Added", appname, "to the list of connected apps.")
 
@@ -36,12 +36,12 @@ def edit_connected_apps(dictionary):
         # get the app name
         appname = dictionary.get("appname").lower()
         # open the connected_apps.json file
-        with open("../../settings/connected_apps.json", "r") as f:
+        with open("settings/connected_apps.json", "r") as f:
             apps = json.load(f)
         # remove the app name and path from the json file
         del apps[appname]
         # save the json file
-        with open("../../settings/connected_apps.json", "w") as f:
+        with open("settings/connected_apps.json", "w") as f:
             json.dump(apps, f)
         print("Removed", appname, "from the list of connected apps.")
     return False

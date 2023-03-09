@@ -8,6 +8,8 @@ import playsound
 import openai
 import os
 import dotenv
+import subprocess
+import sys
 
 # Load the environment variables
 dotenv.load_dotenv()
@@ -32,12 +34,14 @@ if not os.path.exists("settings/log.txt"):
 # if no connected apps file exists, create it
 if not os.path.exists("settings/connected_apps.json"):
     with open("settings/connected_apps.json", "w") as f:
-        pass
+        # write empty dictionary
+        f.write("{}")
 
 # if no settings file exists, create it
 if not os.path.exists("settings/settings.json"):
     with open("settings/settings.json", "w") as f:
-        pass
+        # write empty dictionary
+        f.write("{}")
 
 # make google search object
 google_search = Google()
@@ -153,25 +157,25 @@ def handle_request(message, debug=False, browser="www.google.com", speak=False):
         try:
             # run the app and get the response
             response = eval(f"{app}(dictionary, settings)")
-            # print the response
-            print(f"{app} response: {response}")
             # if the responce is true then break the loop
             if response:
                 break
-        except:
-            # try without the settings
-            try:
-                response = eval(f"{app}(dictionary)")
-                # print the response
-                print(f"{app} response: {response}")
-                # if the responce is true then break the loop
-                if response:
-                    break
-            except Exception as exception:
+        except Exception as exception:
+            if "takes 1 positional argument but 2 were given" not in str(exception):
                 print(f"Error running {app}: {exception}")
+            else:
+                # try without the settings
+                try:
+                    response = eval(f"{app}(dictionary)")
+                    # if the response is true then break the loop
+                    if response:
+                        break
+                except Exception as exception:
+                    print(f"Error running {app}: {exception}")
 
 
 # load app packages using os.walk
+requirements = []
 package_list = []
 for root, dirs, files in os.walk("packages"):
     for app in files:
@@ -185,6 +189,24 @@ for root, dirs, files in os.walk("packages"):
                 package_list.append(app[:-3].replace("jarvis_", ""))
             except Exception as e:
                 print(f"Error loading {app}: {e}")
+        elif app == "jarvis_requirements.txt":
+            # add requirements to requirements list
+            with open(f"{root}/{app}") as f:
+                requirements.extend(f.read().splitlines())
+            # remove duplicates from the list
+            requirements = list(dict.fromkeys(requirements))
+
+# install requirements
+if requirements:
+    # get installed packages using terminal command
+    installed_packages = subprocess.check_output(
+        [sys.executable, "-m", "pip", "freeze"]
+    )
+    for package in requirements:
+        # check if the package is installed
+        if package not in [str(i).split(" ")[0] for i in installed_packages]:
+            # install the package using terminal command
+            subprocess.check_output([sys.executable, "-m", "pip", "install", package])
 
 # print the list of loaded apps
 # print(f"Number of packages loaded: {len(package_list)}: {package_list}")

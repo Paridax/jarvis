@@ -8,6 +8,8 @@ def open_website(dictionary, settings):
             print("Opening", dictionary.get("websitelink"), "in your browser.")
             system("start " + dictionary.get("websitelink"))
         else:
+            if dictionary.get("fullsearchquery") is None:
+                return False
             # get first link from search fullsearchquery
             link = settings["google_search"].search(dictionary.get("fullsearchquery"))[
                 0

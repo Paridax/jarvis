@@ -16,6 +16,8 @@ def search_query(dictionary, settings):
             )
         else:
             query = dictionary.get("fullsearchquery")
+            if query is None:
+                return False
             if settings["debug"]:
                 print("Searching for: ", query)
             else:

@@ -5,7 +5,7 @@ import json
 def open_app(dictionary):
     if dictionary.get("action") == "open":
         # read list of connected apps from json file
-        with open("../../settings/connected_apps.json", "r") as f:
+        with open("settings/connected_apps.json", "r") as f:
             apps = json.load(f)
         # get the app name
         appname = dictionary.get("appname")
