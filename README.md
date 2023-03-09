@@ -64,8 +64,11 @@ Jarvis is a work in progress and is not yet complete. **The following features a
 - [ ] Taking over the world
 
 ## Packages
-this is the documentation on how to write custom packages that extend the main program, your package will have to have the following:
-1. return a True or False, this is used to tell the main program if it needs to skip all future packages, see official packages for implamentation.
+Package Documentation
+
+This is the official documentation on how to write custom packages that extend the main program. Your package must adhere to the following requirements:
+
+1. Return a Boolean value of True or False. This is used to inform the main program if it needs to skip all future packages. Please see the official packages for implementation examples.
 2. must be in own folder for example the following structure:
 ```
 -- packages
@@ -74,9 +77,9 @@ this is the documentation on how to write custom packages that extend the main p
         -- mypackage.py
         -- exewrapper.exe (example file that could be in your package folder)
 ```
-3. your package MUST have a function inside of it that is the name of the package file ex: jarvis_mypackage.py's function would be def mypackage(dictionary, settings):
-4. your main file must start wil jarvis_ as this is used to detect main package files
-5. you must have at least one arg in your function, if it takes one arg the dictionary will be passed, if it takes 2 then the dictionary and current settings will be passed.
+3. Your package MUST have a function inside of it that has the same name as the package file. For example, if your package file is named jarvis_mypackage.py, your function would be def mypackage(dictionary, settings):
+4. Your main file must start with jarvis_ as this is used to detect main package files.
+5. You must have at least one argument in your function. If it takes one argument, the dictionary will be passed. If it takes two arguments, the dictionary and current settings will be passed.
 
 ### INFO:
 The dictionary comes in the following format:
@@ -97,7 +100,7 @@ The dictionary comes in the following format:
   "gptoutput": ,
 }
 ```
-run with debug mode and try some inputs to get a feel of what the outputs of this dictionary are.
+You can run the program in debug mode and test some inputs to understand what the outputs of this dictionary are.
 
 The format of settings is as follows:
 ```py
@@ -109,6 +112,7 @@ The format of settings is as follows:
     "browser": browser, (the prefered browser of the user)
 }
 ```
+Please ensure that your package follows these guidelines to work seamlessly with the main program, if you wish to have your package added to the main stack make a pull request.
 ## Conclusion
 
 Jarvis is a powerful tool that can make your life easier by performing tasks quickly and efficiently. By following the instructions in this README file, you can install and run Jarvis on your own machine and take advantage of its many features.
