@@ -74,10 +74,11 @@ this is the documentation on how to write custom packages that extend the main p
         -- mypackage.py
         -- exewrapper.exe (example file that could be in your package folder)
 ```
-3. your pacage MUST have a function inside of it that is the name of the package file ex: jarvis_mypackage.py's function would be def mypackage(dictionary, settings):
+3. your package MUST have a function inside of it that is the name of the package file ex: jarvis_mypackage.py's function would be def mypackage(dictionary, settings):
 4. your main file must start wil jarvis_ as this is used to detect main package files
 5. you must have at least one arg in your function, if it takes one arg the dictionary will be passed, if it takes 2 then the dictionary and current settings will be passed.
-INFO:
+
+# INFO:
 The dictionary comes in the following format:
 ```py
 {
