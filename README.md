@@ -63,7 +63,8 @@ Jarvis is a work in progress and is not yet complete. **The following features a
 - [ ] Searching for installed programs
 - [ ] Taking over the world
 
-## Packages
+# Package guidelines
+
 Package Documentation
 
 This is the official documentation on how to write custom packages that extend the main program. Your package must adhere to the following requirements:
@@ -80,6 +81,9 @@ This is the official documentation on how to write custom packages that extend t
 3. Your package MUST have a function inside of it that has the same name as the package file. For example, if your package file is named jarvis_mypackage.py, your function would be def mypackage(dictionary, settings):
 4. Your main file must start with jarvis_ as this is used to detect main package files.
 5. You must have at least one argument in your function. If it takes one argument, the dictionary will be passed. If it takes two arguments, the dictionary and current settings will be passed.
+6. Your package must be able to run without any errors. If your package has errors, it will not be added to the main stack.
+7. Your package must have a jarvis_requirements.txt file that contains all the packages that are required to run your package. This is used to install all the required packages for your package. You do not need this if you only use python stack packages.
+8. your package should have a readme.md
 
 ### INFO:
 The dictionary comes in the following format:
@@ -113,6 +117,8 @@ The format of settings is as follows:
 }
 ```
 Please ensure that your package follows these guidelines to work seamlessly with the main program, if you wish to have your package added to the main stack make a pull request.
+## Uploading your package
+To upload your package to the main stack, make a pull request with your package in the unofficial packages folder. Please ensure that your package follows the guidelines above. Your package will most likely be reviewed in around one week.
 ## Conclusion
 
 Jarvis is a powerful tool that can make your life easier by performing tasks quickly and efficiently. By following the instructions in this README file, you can install and run Jarvis on your own machine and take advantage of its many features.
