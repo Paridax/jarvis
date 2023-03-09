@@ -23,7 +23,7 @@ def help_screen():
 debug = False
 voice_mode = False
 text_mode = True
-speak=False
+speak = False
 
 # check for command line arguments
 if len(sys.argv) > 1:
@@ -54,8 +54,8 @@ if len(sys.argv) > 1:
 
 print("Waking up Jarvis...")
 
-from main_voice_interface import voice_interface
-from main_text_interface import text_interface
+from voice_interface import voice_interface
+from text_interface import text_interface
 from backend import speak_message
 
 speak_message("How may I help you?", out_loud=speak)

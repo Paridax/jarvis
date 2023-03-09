@@ -12,9 +12,10 @@ import dotenv
 # Load the environment variables
 dotenv.load_dotenv()
 
-# Set the OpenAI API key
+# get the OpenAI API key, used in packages
 API_KEY = dotenv.get_key(dotenv.find_dotenv(), "OPENAI_API_KEY")
 
+# set the openai api key
 openai.api_key = API_KEY
 
 # generate directories and log files
@@ -31,6 +32,11 @@ if not os.path.exists("settings/log.txt"):
 # if no connected apps file exists, create it
 if not os.path.exists("settings/connected_apps.json"):
     with open("settings/connected_apps.json", "w") as f:
+        pass
+
+# if no settings file exists, create it
+if not os.path.exists("settings/settings.json"):
+    with open("settings/settings.json", "w") as f:
         pass
 
 # make google search object
@@ -94,7 +100,13 @@ def handle_request(message, debug=False, browser="www.google.com", speak=False):
         print(f"Asking Jarvis (GPT 3.5 AI Model): {message}")
     speak_message("Just a moment...", out_loud=speak)
 
-    prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: "action" (example categories: "conversation"(if the user wants to chat with chatgpt),"open","query","play","pause"), "weather" (weather related, boolean), location(region name if given), "keywords"(list), "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","songsearch"(song title and author if given, in a string),"openimages"(if the user wants to open google search images),"gptoutput" (your response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
+    prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: 
+    "action" (example categories: "conversation"(if the user wants to chat with chatgpt),"open","query","play",
+    "pause"), "weather" (weather related, boolean), location(region name if given), "keywords"(list), 
+    "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","songsearch"(song title 
+    and author if given, in a string),"openimages"(if the user wants to open google search images),"gptoutput" (your 
+    response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, 
+    and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
 
     result = openai.ChatCompletion.create(
         messages=[
