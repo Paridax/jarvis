@@ -62,6 +62,36 @@ Jarvis is a work in progress and is not yet complete. **The following features a
 - [ ] Searching for installed programs
 - [ ] Taking over the world
 
+# The Jarvis CLI
+
+The Jarvis.py CLI Tool is a command-line interface. It can be used to interact with the JarvisAI program in two modes: text and voice. This tool is available on GitHub, and it's free for everyone to use.
+### Installation
+
+Before using the Jarvis.py CLI Tool, make sure you have Python 3 installed on your computer. You can download it from the official Python website. Once you have Python 3 installed, you can download Jarvis.py from the GitHub repository and extract it to a folder on your computer.
+### Usage
+
+The Jarvis.py CLI Tool has three commands: text, voice, and help. The default command is text. Here's how to use the tool:
+
+```
+python jarvis.py (command) [options]
+```
+
+### Commands
+
+- `text`: Run in text mode (default).
+- `voice`: Run in voice mode.
+- `help`: Display the help message.
+
+### Options
+- `--debug`: Run in debug mode. This will display additional information to help you debug any issues you encounter.
+- `--speak`: Speak the response. This option is only available when running in text mode.
+
+### Examples
+- `python jarvis.py`: Run Jarvis in text mode.
+- `python jarvis.py voice`: Run Jarvis in voice mode.
+- `python jarvis.py text --debug`: Run Jarvis in text mode with debug information.
+- `python jarvis.py help`: Display the help message.
+
 ## Conclusion
 
 Jarvis is a powerful tool that can make your life easier by performing tasks quickly and efficiently. By following the instructions in this README file, you can install and run Jarvis on your own machine and take advantage of its many features.
