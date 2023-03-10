@@ -93,6 +93,12 @@ class Google:
         except Exception as e:
             pass
 
+        # try to delete div with id of "taw", which is spellcheck
+        try:
+            self.driver.execute_script("document.getElementById(\"taw\").remove()")
+        except Exception as e:
+            pass
+
         if text:
             # remove all newlines and replace with semicolons
             cleaned = results.text.replace("\n", "  ")
@@ -172,4 +178,4 @@ if __name__ == "__main__":
     g = Google()
     # weather = g.weather("New York")
     # print(weather)
-    print(g.search("joe biden age", text=True, links=5))
+    print(g.search("joe biden age", links=5))

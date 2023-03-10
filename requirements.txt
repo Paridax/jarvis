@@ -6,3 +6,4 @@ transformers~=4.26.1
 selenium~=4.8.2
 customtkinter~=5.1.2
 requests~=2.28.2
+pytz==2022.7.1

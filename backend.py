@@ -109,11 +109,10 @@ def handle_request(message, debug=False, browser="www.google.com", speak=False):
     forecast: boolean), "gpt_chat", "open_app" (necessary fields; appName: string, websiteUrl: string (backup url if 
     app not installed)), "open_website" (necessary fields; websiteUrl: string (full url), websiteName, string, searchQuery: string (query that can be used to find website), 
     "open_image" (necessary fields; imagesearch: string), "play_music" (necessary fields; artist: string, 
-    songName: string), "search_query" (necessary fields; query: string), "math": string, "get_time" (necessary 
-    fields; timeZone: string (example: EST, EDT, GMT) | null (if no location is specified)), "smart_home" (necessary 
-    fields; device: string, enable: boolean)), keywords: array. Optional: response: string (if the user wants to talk 
-    to the AI model directly), errorMessage: string (if there is a problem with the question). Optional fields should 
-    not be nested in another object. Only give most likely output. Do not add any outputs other than given. Prompt: \"{message}\""""
+    songName: string), "search_query" (necessary fields; query: string), "math": string (string of vanilla python code to calculate result), "get_time" (necessary 
+    fields; timeZone: integer (timezone UTC offset hours, ex.: -5, 5.5, 11, null), location: string), keywords: array. Optional fields:
+    response: string (if the user wants to talk to the AI model directly), errorMessage: string (if there is a problem
+    with the question). Fields should not be nested in another object. Do not add any extra outputs. Prompt: \"{message}\""""
 
     result = openai.ChatCompletion.create(
         messages=[
