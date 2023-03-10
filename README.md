@@ -140,7 +140,11 @@ Here is the new file structure after creating the README.
 ```
 
 ### 9. Test your package
-Run Jarvis in debug mode and test your package to ensure that it works correctly. You can do this by running python jarvis.py --debug.
+Run Jarvis in debug mode and test your package to ensure that it works correctly. You can do this by running the following in your console.
+
+```
+python jarvis.py --debug
+```
 
 ### 10. Upload your package
 Once you've tested your package, you can upload it to the main Jarvis stack by creating a pull request with your package in the unofficial packages folder. Your package will be reviewed and, if accepted, added to the list of verified packages.
