@@ -9,7 +9,7 @@ Your package must adhere to the following requirements:
     ```
     -- jarvis.py
     -- /packages
-       -- /official
+       -- /builtin
        -- /mypackage
            -- jarvis_mypackage.py
            -- jarvis_requirements.txt
