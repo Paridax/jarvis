@@ -5,7 +5,7 @@ This is the official documentation on how to write custom packages that extend a
 Your package must adhere to the following requirements:
 
 1. Return a Boolean value of True or False. This is used to inform Jarvis if it needs to skip all future packages. Please see the official packages for implementation examples.
-2. Must be in own folder for example the following structure:
+2. Must be in own folder. Here is an example of the file structure:
     ```
     -- jarvis.py
     -- /packages
