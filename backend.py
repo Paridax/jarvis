@@ -104,13 +104,16 @@ def handle_request(message, debug=False, browser="www.google.com", speak=False):
         print(f"Asking Jarvis (GPT 3.5 AI Model): {message}")
     speak_message("Just a moment...", out_loud=speak)
 
-    prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: 
-    "action" (example categories: "conversation"(if the user wants to chat with chatgpt),"open","query","play",
-    "pause"), "weather" (weather related, boolean), location(region name if given), "keywords"(list), 
-    "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","songsearch"(song title 
-    and author if given, in a string),"openimages"(if the user wants to open google search images),"gptoutput" (your 
-    response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, 
-    and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
+    prompt = f"""Normalize the following prompt into a json object with the following keys: action ("edit_connected_apps" 
+    (necessary fields; appPath: string, appName: string), "get_weather” (necessary fields; location: string, 
+    forecast: boolean), "gpt_chat", "open_app" (necessary fields; appName: string, websiteUrl: string (backup url if 
+    app not installed)), "open_website" (necessary fields; websiteUrl: string (full url), websiteName, string, searchQuery: string (query that can be used to find website), 
+    "open_image" (necessary fields; imagesearch: string), "play_music" (necessary fields; artist: string, 
+    songName: string), "search_query" (necessary fields; query: string), "math": string, "get_time" (necessary 
+    fields; timeZone: string (example: EST, EDT, GMT) | null (if no location is specified)), "smart_home" (necessary 
+    fields; device: string, enable: boolean)), keywords: array. Optional: response: string (if the user wants to talk 
+    to the AI model directly), errorMessage: string (if there is a problem with the question). Optional fields should 
+    not be nested in another object. Only give most likely output. Do not add any outputs other than given. Prompt: \"{message}\""""
 
     result = openai.ChatCompletion.create(
         messages=[
@@ -118,6 +121,7 @@ def handle_request(message, debug=False, browser="www.google.com", speak=False):
         ],
         model="gpt-3.5-turbo",
         temperature=0,
+        top_p=0,
         max_tokens=1000,
     )
 
@@ -152,26 +156,20 @@ def handle_request(message, debug=False, browser="www.google.com", speak=False):
         "browser": browser,
     }
 
-    # loop through app packages and run each
-    for app in package_list:
+    # open package that corresponds to the action
+    if action in package_list:
         try:
-            # run the app and get the response
-            response = eval(f"{app}(dictionary, settings)")
-            # if the responce is true then break the loop
-            if response:
-                break
-        except Exception as exception:
-            if "takes 1 positional argument but 2 were given" not in str(exception):
-                print(f"Error running {app}: {exception}")
+            # execute the package and pass the dictionary and settings
+            exec(f"{action}(dictionary, settings)")
+        except Exception as e:
+            if "takes 1 positional argument but 2 were given" not in str(e):
+                print(f"Error running {action}: {e}")
             else:
-                # try without the settings
                 try:
-                    response = eval(f"{app}(dictionary)")
-                    # if the response is true then break the loop
-                    if response:
-                        break
-                except Exception as exception:
-                    print(f"Error running {app}: {exception}")
+                    # execute the package and pass the dictionary
+                    exec(f"{action}(dictionary)")
+                except Exception as e:
+                    print(f"Error running {action}: {e}")
 
 
 # load app packages using os.walk

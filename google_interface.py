@@ -87,6 +87,11 @@ class Google:
 
         # get the search results
         results = self.driver.find_element(By.ID, "rcnt")
+        # try to delete div with id of "taw", which is spellcheck
+        try:
+            self.driver.execute_script("document.getElementById(\"taw\").remove()")
+        except Exception as e:
+            pass
 
         if text:
             # remove all newlines and replace with semicolons
