@@ -143,7 +143,7 @@ Here is the new file structure after creating the README.
 Run Jarvis in debug mode and test your package to ensure that it works correctly. You can do this by running the following in your console.
 
 ```
-python jarvis.py --debug
+python jarvis.py text --debug
 ```
 
 ### 10. Upload your package
