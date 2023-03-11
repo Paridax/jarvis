@@ -1,5 +1,3 @@
-from backend import speak_message
-import datetime
 import openai
 
 
@@ -32,9 +30,7 @@ def search_query(dictionary, settings):
 
     # print price of prompt and response in usd
     if settings["debug"]:
-        print(
-            f"Total cost in dollars: ${response['usage']['total_tokens'] * 0.000002}"
-        )
+        print(f"Total cost in dollars: ${response['usage']['total_tokens'] * 0.000002}")
 
     if settings["debug"]:
         print(f"ANSWER: {answer}")
