@@ -3,26 +3,26 @@ import datetime
 
 def get_timezone_offset(timezone):
     timezone_dict = {
-        'EST': -5,
-        'CST': -6,
-        'MST': -7,
-        'PST': -8,
-        'AKT': -9,
-        'HST': -10,
-        'AST': -4,
-        'GMT': 0,
-        'BST': 1,
-        'CET': 1,
-        'EET': 2,
-        'MSK': 3,
-        'IST': 5.5,
-        'WIB': 7,
-        'CHST': 8,
-        'JST': 9,
-        'AET': 10,
-        'NZT': 12,
-        'NST': -3.5,
-        'CAT': 2
+        "EST": -5,
+        "CST": -6,
+        "MST": -7,
+        "PST": -8,
+        "AKT": -9,
+        "HST": -10,
+        "AST": -4,
+        "GMT": 0,
+        "BST": 1,
+        "CET": 1,
+        "EET": 2,
+        "MSK": 3,
+        "IST": 5.5,
+        "WIB": 7,
+        "CHST": 8,
+        "JST": 9,
+        "AET": 10,
+        "NZT": 12,
+        "NST": -3.5,
+        "CAT": 2,
     }
     return timezone_dict.get(timezone, 0)
 
@@ -45,7 +45,9 @@ def get_time(dictionary):
     try:
         timezone_offset = int(timezone_offset)
     except ValueError:
-        print("I couldn't find this for you. Please try again. The timezone offset was invalid.")
+        print(
+            "I couldn't find this for you. Please try again. The timezone offset was invalid."
+        )
         return
 
     # get the time as UTC

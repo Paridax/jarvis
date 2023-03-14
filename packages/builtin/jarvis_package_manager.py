@@ -172,35 +172,43 @@ def package_manager(dictionary):
     # Send a GET request to retrieve the folder contents
     response = requests.get(api_url, headers=headers)
 
-    github_packages = []
-    # loop through the files in the repo if it is a directory than add it to the list and find readme.md file path in the directory
-    for file in response.json():
-        if file.get("name") == "builtin":
-            continue
+    try:
+        github_packages = []
+        # loop through the files in the repo if it is a directory than add it to the list and find readme.md file path in the directory
+        for file in response.json():
+            if file.get("name") == "builtin":
+                continue
 
-        if file.get("type") == "dir":
-            # get files in the directory
-            api_url = f"https://api.github.com/repos/Paridax/jarvis/contents/packages/{file['name']}?ref=community-packages"
-            response_2 = requests.get(api_url, headers=headers)
+            if file.get("type") == "dir":
+                # get files in the directory
+                api_url = f"https://api.github.com/repos/Paridax/jarvis/contents/packages/{file['name']}?ref=community-packages"
+                response_2 = requests.get(api_url, headers=headers)
 
-            # loop through the files in the directory
-            for file_2 in response_2.json():
-                if file_2.get("name") == "readme.md":
-                    # get contents of the readme.md file
-                    api_url = f"https://api.github.com/repos/Paridax/jarvis/contents/{file_2['path']}?ref=community-packages"
-                    response_3 = requests.get(api_url, headers=headers)
+                # loop through the files in the directory
+                for file_2 in response_2.json():
+                    if file_2.get("name") == "readme.md":
+                        # get contents of the readme.md file
+                        api_url = f"https://api.github.com/repos/Paridax/jarvis/contents/{file_2['path']}?ref=community-packages"
+                        response_3 = requests.get(api_url, headers=headers)
 
-                    # append the package name and the readme.md contents to the list, decode contents from base64
-                    github_packages.append(
-                        {
-                            "name": file.get("name"),
-                            "readme": base64.b64decode(
-                                response_3.json()["content"].replace("\n", "").encode()
-                            ),
-                            "root": f"packages/{file.get('name')}",
-                        }
-                    )
-                    break
+                        # append the package name and the readme.md contents to the list, decode contents from base64
+                        github_packages.append(
+                            {
+                                "name": file.get("name"),
+                                "readme": base64.b64decode(
+                                    response_3.json()["content"]
+                                    .replace("\n", "")
+                                    .encode()
+                                ),
+                                "root": f"packages/{file.get('name')}",
+                            }
+                        )
+                        break
+    except:
+        print(
+            "Error getting github packages, most likely due to unauthorized api rate limit(60 requests per hour)"
+        )
+        github_packages = []
 
     # initialize customtkinter
     app = customtkinter.CTk()
