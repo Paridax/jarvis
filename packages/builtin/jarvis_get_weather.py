@@ -1,5 +1,9 @@
 from backend import speak_message
 
+prompt_extension = (
+    """"get_weather” (necessary fields; location: string, forecast: boolean)"""
+)
+
 
 def get_weather(dictionary, settings):
     print("Getting weather...")

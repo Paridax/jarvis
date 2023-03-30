@@ -72,8 +72,6 @@ def wait_then_parse_dictionary(result, prompt, debug=False):
         )
         f.write("\n")
 
-    if debug:
-        print("response: ", result)
     # find the dictionary in the response
     # use regex to find the dictionary between { and }
     regex = r"\{[\s\S]*\}"
@@ -83,6 +81,11 @@ def wait_then_parse_dictionary(result, prompt, debug=False):
         dictionary = dictionary.group(0)
         # replace double backslashes with single forward slashes
         dictionary = sub(r"\\", "/", dictionary)
+        # remove nested quotes
+        dictionary = sub(r"\"{", "{", dictionary)
+        dictionary = sub(r"}\"", "}", dictionary)
+        if debug:
+            print("response: ", dictionary)
         # convert to dictionary
         dictionary = json.loads(dictionary)
         # revert quoted none to none and quoted false to false
@@ -104,13 +107,12 @@ def handle_request(message, debug=False, browser="www.google.com", speak=False):
         print(f"Asking Jarvis (GPT 3.5 AI Model): {message}")
     speak_message("Just a moment...", out_loud=speak)
 
-    prompt = f"""Normalize the following prompt into a json object with the following keys: action ("edit_connected_apps" 
-    (necessary fields; appPath: string, appName: string), "get_weather” (necessary fields; location: string, 
-    forecast: boolean), "gpt_chat", "open_app" (necessary fields; appName: string, websiteUrl: string (backup url if 
-    app not installed)), "open_website" (necessary fields; websiteUrl: string (full url), websiteName, string, searchQuery: string (query that can be used to find website), 
-    "open_image" (necessary fields; imagesearch: string), "play_music" (necessary fields; artist: string, 
-    songName: string), "search_query" (necessary fields; query: string), "package_manager", "math": string (string of vanilla python code to calculate result), "get_time" (necessary 
-    fields; timeZone: integer (timezone UTC offset hours, ex.: -5, 5.5, 11, null), location: string), keywords: array. Optional fields:
+    prompt = f"""Normalize the following prompt into a json object with the following keys: action """
+
+    for extension in prompt_extensions:
+        prompt += ", " + extension
+
+    prompt += f""", keywords: array. Optional fields:
     response: string (if the user wants to talk to the AI model directly), errorMessage: string (if there is a problem
     with the question). Fields should not be nested in another object. Do not add any extra outputs. Prompt: \"{message}\""""
 
@@ -159,14 +161,14 @@ def handle_request(message, debug=False, browser="www.google.com", speak=False):
     if action in package_list:
         try:
             # execute the package and pass the dictionary and settings
-            exec(f"{action}(dictionary, settings)")
+            exec(f"""{action.replace("jarvis_", "")}(dictionary, settings)""")
         except Exception as e:
             if "takes 1 positional argument but 2 were given" not in str(e):
                 print(f"Error running {action}: {e}")
             else:
                 try:
                     # execute the package and pass the dictionary
-                    exec(f"{action}(dictionary)")
+                    exec(f"""{action.replace("jarvis_", "")}(dictionary)""")
                 except Exception as e:
                     print(f"Error running {action}: {e}")
 
@@ -183,7 +185,8 @@ for root, dirs, files in os.walk("packages"):
                 exec(
                     f"from {root.replace('/', '.')}.{app[:-3]} import {app[:-3].replace('jarvis_', '')}"
                 )
-                package_list.append(app[:-3].replace("jarvis_", ""))
+                exec(f"import {root.replace('/', '.')}.{app[:-3]} as {app[:-3]}")
+                package_list.append(app[:-3])
             except Exception as e:
                 print(f"Error loading {app}: {e}")
         elif app == "jarvis_requirements.txt":
@@ -192,6 +195,16 @@ for root, dirs, files in os.walk("packages"):
                 requirements.extend(f.read().splitlines())
             # remove duplicates from the list
             requirements = list(dict.fromkeys(requirements))
+
+# load all prompt extensions from packages
+prompt_extensions = []
+for package in package_list:
+    try:
+        # get the prompt extension from the package
+        prompt_extensions.append(eval(f"{package}.prompt_extension"))
+    except Exception as e:
+        print(f"Error loading prompt extension from {package}: {e}")
+
 
 # install requirements
 if requirements:

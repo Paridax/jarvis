@@ -1,5 +1,7 @@
 import openai
 
+prompt_extension = """"search_query" (necessary fields; query: string)"""
+
 
 def search_query(dictionary, settings):
     # load openai api key

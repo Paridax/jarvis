@@ -1,6 +1,8 @@
 from subprocess import Popen
 import json
 
+prompt_extension = """"open_app" (necessary fields; appName: string, websiteUrl: string (backup url if app not installed))"""
+
 
 def open_app(dictionary):
     # read list of connected apps from json file

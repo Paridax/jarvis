@@ -6,6 +6,8 @@ import zipfile
 import shutil
 import hashlib
 
+prompt_extension = """"package_manager""" ""
+
 global current_package, installed_packages_readme, github_packages_readme, packages, installed_buttons
 
 

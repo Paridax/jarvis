@@ -1,6 +1,10 @@
 import json
 import os
 
+prompt_extension = (
+    """("edit_connected_apps" (necessary fields; appPath: string, appName: string)"""
+)
+
 
 def edit_connected_apps(dictionary):
     if "add" in dictionary.get("keywords") and (

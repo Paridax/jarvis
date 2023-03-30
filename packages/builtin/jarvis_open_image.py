@@ -1,6 +1,8 @@
 from os import system
 from backend import speak_message
 
+prompt_extension = """"open_image" (necessary fields; imagesearch: string)"""
+
 
 def open_image(dictionary, settings):
     # open the Google search with the fullsearchquery

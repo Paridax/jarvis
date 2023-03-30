@@ -1,6 +1,10 @@
 from os import system
 from backend import speak_message
 
+prompt_extension = (
+    """"play_music" (necessary fields; artist: string, songName: string)"""
+)
+
 
 def play_music(dictionary, settings):
     # get the first link on google for the search and open it

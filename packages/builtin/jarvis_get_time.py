@@ -1,5 +1,7 @@
 import datetime
 
+prompt_extension = """"get_time" (necessary fields; timeZone: integer (timezone UTC offset hours, ex.: -5, 5.5, 11, null), location: string)"""
+
 
 def get_timezone_offset(timezone):
     timezone_dict = {

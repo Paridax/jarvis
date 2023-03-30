@@ -1,5 +1,7 @@
 import openai
 
+prompt_extension = """""gpt_chat""" ""
+
 
 def gpt_chat(dictionary, settings):
     # load api key
