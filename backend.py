@@ -112,7 +112,7 @@ def handle_request(message, debug=False, browser="www.google.com", speak=False):
     for extension in prompt_extensions:
         prompt += ", " + extension
 
-    prompt += f""", keywords: array. Optional fields:
+    prompt += f""", always add a keywords key that is an array. Optional fields:
     response: string (if the user wants to talk to the AI model directly), errorMessage: string (if there is a problem
     with the question). Fields should not be nested in another object. Do not add any extra outputs. Prompt: \"{message}\""""
 
@@ -158,19 +158,18 @@ def handle_request(message, debug=False, browser="www.google.com", speak=False):
     }
 
     # open package that corresponds to the action
-    if action in package_list:
-        try:
-            # execute the package and pass the dictionary and settings
-            exec(f"""{action.replace("jarvis_", "")}(dictionary, settings)""")
-        except Exception as e:
-            if "takes 1 positional argument but 2 were given" not in str(e):
+    try:
+        # execute the package and pass the dictionary and settings
+        exec(f"""{action}(dictionary, settings)""")
+    except Exception as e:
+        if "takes 1 positional argument but 2 were given" not in str(e):
+            print(f"Error running {action}: {e}")
+        else:
+            try:
+                # execute the package and pass the dictionary
+                exec(f"""{action}(dictionary)""")
+            except Exception as e:
                 print(f"Error running {action}: {e}")
-            else:
-                try:
-                    # execute the package and pass the dictionary
-                    exec(f"""{action.replace("jarvis_", "")}(dictionary)""")
-                except Exception as e:
-                    print(f"Error running {action}: {e}")
 
 
 # load app packages using os.walk

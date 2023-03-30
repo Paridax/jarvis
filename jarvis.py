@@ -18,6 +18,7 @@ flagList = {}
 
 # GLOBAL FUNCTIONS
 
+
 def help_screen():
     print("\nJarvis.py CLI Tool - Created by Paridax and DarkEden\n")
     print("GitHub: https://github.com/paridax/jarvis\n")
