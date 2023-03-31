@@ -148,6 +148,18 @@ def mypackage(dictionary, settings):
     pass
 ```
 
+### 5. Add a prompt_extension var
+Your package must have a prompt_extension varieble defined in the global scope, this will contain a preferably small string that is added to the prompt given to the ai, this is used to call your package when the user requires it, you can look at the builtin packages if you want more examples.
+
+Your package should look like this now.
+```py
+# /packages/mypackage/jarvis_mypackage.py
+prompt_extension = "what ever you want here"
+
+def mypackage(dictionary, settings):
+    pass
+```
+
 ### 6. Write your code
 Inside your function, write the code that implements the functionality you want to add. You can use any Python library or package, as long as you include them in the jarvis_requirements.txt file.
 
@@ -207,6 +219,7 @@ Once you've tested your package, you can upload it to the main Jarvis stack by c
 - [x] Packages must be contained in their own folder within the `/packages` directory of the JarvisAI project.
 - [x] Packages must have a unique name that starts with `jarvis_`.
 - [x] Packages must have a main file with the same name as the `package` folder, and this file must contain a function with the same name as the file. For example, if your package folder is named `mypackage` and your main file is named `jarvis_mypackage.py`, then your function must follow this pattern: `def mypackage(dictionary, settings):`.
+- [x] Packages must have a prompt_extension var definined in the global scoppe.
 - [x] Packages must accept either one or two arguments: the dictionary, and optionally the current settings.
 - [x] Packages must be able to run without any errors. If a package produces errors, Jarvis will not load it.
 - [x] Packages must have a `jarvis_requirements.txt` file that lists all required packages needed to run the Jarvis package. This file is used to install any necessary dependencies.
