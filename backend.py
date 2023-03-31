@@ -2,20 +2,22 @@ from google_interface import Google
 from os import system
 from re import search, sub
 import json
-from subprocess import Popen
 import datetime
 from gtts import gTTS
 import playsound
 import openai
 import os
 import dotenv
+import subprocess
+import sys
 
 # Load the environment variables
 dotenv.load_dotenv()
 
-# Set the OpenAI API key
+# get the OpenAI API key, used in packages
 API_KEY = dotenv.get_key(dotenv.find_dotenv(), "OPENAI_API_KEY")
 
+# set the openai api key
 openai.api_key = API_KEY
 
 # generate directories and log files
@@ -32,7 +34,14 @@ if not os.path.exists("settings/log.txt"):
 # if no connected apps file exists, create it
 if not os.path.exists("settings/connected_apps.json"):
     with open("settings/connected_apps.json", "w") as f:
-        pass
+        # write empty dictionary
+        f.write("{}")
+
+# if no settings file exists, create it
+if not os.path.exists("settings/settings.json"):
+    with open("settings/settings.json", "w") as f:
+        # write empty dictionary
+        f.write("{}")
 
 # make google search object
 google_search = Google()
@@ -63,8 +72,6 @@ def wait_then_parse_dictionary(result, prompt, debug=False):
         )
         f.write("\n")
 
-    if debug:
-        print("response: ", result)
     # find the dictionary in the response
     # use regex to find the dictionary between { and }
     regex = r"\{[\s\S]*\}"
@@ -74,6 +81,11 @@ def wait_then_parse_dictionary(result, prompt, debug=False):
         dictionary = dictionary.group(0)
         # replace double backslashes with single forward slashes
         dictionary = sub(r"\\", "/", dictionary)
+        # remove nested quotes
+        dictionary = sub(r"\"{", "{", dictionary)
+        dictionary = sub(r"}\"", "}", dictionary)
+        if debug:
+            print("response: ", dictionary)
         # convert to dictionary
         dictionary = json.loads(dictionary)
         # revert quoted none to none and quoted false to false
@@ -84,8 +96,8 @@ def wait_then_parse_dictionary(result, prompt, debug=False):
                 dictionary[key] = False
     except AttributeError:
         dictionary = {
-            "action": "conversation",
-            "gptoutput": "There was an error parsing the dictionary. Please try again.",
+            "action": "error",
+            "output": "There was an error parsing the dictionary. Please try again.",
         }
     return dictionary
 
@@ -95,7 +107,14 @@ def handle_request(message, debug=False, browser="www.google.com", speak=False):
         print(f"Asking Jarvis (GPT 3.5 AI Model): {message}")
     speak_message("Just a moment...", out_loud=speak)
 
-    prompt = f"""What is the intent of this prompt? Can you give me a JSON OBJECT NOT IN A CODE BLOCK with the keys: "action" (example categories: "conversation","open","query","play","pause"), "weather" (weather related, boolean), location(region name if given), "keywords"(list), "searchcompletetemplateurl", "appname","apppath","websitelink","target","fullsearchquery","songsearch"(song title and author if given, in a string),"openimages"(if the user wants to open google search images),"gptoutput" (your response, leave as null if you are also returning a search query) Make sure to extend any abbreviations, and don't provide context or explanation before giving the dictionary response. Here is the prompt: \"{message}\""""
+    prompt = f"""Normalize the following prompt into a json object with the following keys: action """
+
+    for extension in prompt_extensions:
+        prompt += ", " + extension
+
+    prompt += f""", always add a keywords key that is an array. Optional fields:
+    response: string (if the user wants to talk to the AI model directly), errorMessage: string (if there is a problem
+    with the question). Fields should not be nested in another object. Do not add any extra outputs. Prompt: \"{message}\""""
 
     result = openai.ChatCompletion.create(
         messages=[
@@ -103,6 +122,7 @@ def handle_request(message, debug=False, browser="www.google.com", speak=False):
         ],
         model="gpt-3.5-turbo",
         temperature=0,
+        top_p=0,
         max_tokens=1000,
     )
 
@@ -118,152 +138,84 @@ def handle_request(message, debug=False, browser="www.google.com", speak=False):
         print(f"Total cost in dollars: ${result['usage']['total_tokens'] * 0.000002}")
 
     dictionary = wait_then_parse_dictionary(text, prompt, debug=debug)
+    if dictionary.get("action") == "error":
+        print(dictionary.get("output"))
+        return
+
     # get the action
     action = dictionary.get("action")
 
     if debug:
         print(f"Action: {action}")
-    if action == "conversation":
-        print(dictionary.get("gptoutput"))
-    # if keywords has added and applist in it then add the app to the connected_apps.json file
-    elif "add" in dictionary.get("keywords") and (
-        ("app" in dictionary.get("keywords") and "list" in dictionary.get("keywords"))
-        or "app list" in dictionary.get("keywords")
-        or "applist" in dictionary.get("keywords")
-    ):
-        # get the app name
-        appname = dictionary.get("appname").lower()
-        # get the app path
-        apppath = dictionary.get("apppath")
-        print(f"Adding {appname} to the list of connected apps.")
-        # print if the connected_apps.json file doesn't exist
-        if not os.path.exists("settings/connected_apps.json"):
-            print("The connected_apps.json file doesn't exist.")
-        else:
-            print("The connected_apps.json file exists.")
-        # load the connected_apps.json file using json
-        with open("settings/connected_apps.json", "r") as f:
-            apps = json.load(f)
-        # add the app name and path to the json file
-        apps[appname] = apppath
-        # save the json file
-        with open("settings/connected_apps.json", "w") as f:
-            json.dump(apps, f)
-        print("Added", appname, "to the list of connected apps.")
 
-    # if keywords has remove and applist in it then remove the app from the connected_apps.json file
-    elif "remove" in dictionary.get("keywords") and (
-        "applist" in dictionary.get("keywords")
-        or "app list" in dictionary.get("keywords")
-    ):
-        # get the app name
-        appname = dictionary.get("appname").lower()
-        # open the connected_apps.json file
-        with open("settings/connected_apps.json", "r") as f:
-            apps = json.load(f)
-        # remove the app name and path from the json file
-        del apps[appname]
-        # save the json file
-        with open("settings/connected_apps.json", "w") as f:
-            json.dump(apps, f)
-        print("Removed", appname, "from the list of connected apps.")
-    elif dictionary.get("openimages") is True:
-        # open the Google search with the fullsearchquery
-        speak_message("Opening Google search for " + dictionary.get("fullsearchquery"), out_loud=speak)
-        system(
-            "start "
-            + f"https://{browser}/images?q={dictionary.get('fullsearchquery').replace(' ', '+')}"
-        )
-    elif action == "open":
-        # read list of connected apps from json file
-        with open("settings/connected_apps.json", "r") as f:
-            apps = json.load(f)
-        # get the app name
-        appname = dictionary.get("appname")
-        if appname is None:
-            appname = None
+    # make settings dictionary
+    settings = {
+        "debug": debug,
+        "out_loud": speak,
+        "openai_key": API_KEY,
+        "google_search": google_search,
+        "browser": browser,
+    }
+
+    # open package that corresponds to the action
+    try:
+        # execute the package and pass the dictionary and settings
+        exec(f"""{action}(dictionary, settings)""")
+    except Exception as e:
+        if "takes 1 positional argument but 2 were given" not in str(e):
+            print(f"Error running {action}: {e}")
         else:
-            appname = appname.lower()
-        # if the app name is in the list of connected apps then open it
-        if appname in apps:
-            print(f"Opening {appname} at {apps[appname]}")
-            # run the executable and add quotes around the path, using subprocess
-            # if open fails then print an error message
             try:
-                Popen([f"{apps[appname]}"])
-            except:
-                print(f"Could not open {appname} at {apps[appname]}")
-        else:
-            if dictionary.get("websitelink") is not None:
-                print("Opening", dictionary.get("websitelink"), "in your browser.")
-                system("start " + dictionary.get("websitelink"))
-            else:
-                # get first link from search fullsearchquery
-                link = google_search.search(dictionary.get("fullsearchquery"))[0].get(
-                    "link"
+                # execute the package and pass the dictionary
+                exec(f"""{action}(dictionary)""")
+            except Exception as e:
+                print(f"Error running {action}: {e}")
+
+
+# load app packages using os.walk
+requirements = []
+package_list = []
+for root, dirs, files in os.walk("packages"):
+    for app in files:
+        if app.endswith(".py") and app.startswith("jarvis_"):
+            try:
+                # import the app`using the root and app name
+                root = root.replace("/", ".").replace("\\", ".")
+                exec(
+                    f"from {root.replace('/', '.')}.{app[:-3]} import {app[:-3].replace('jarvis_', '')}"
                 )
-                speak_message(f"Opening {link}", out_loud=speak)
-                system("start " + link)
-    elif action == "play":
-        if dictionary.get("websitelink") is not None:
-            print("Playing", dictionary.get("websitelink"), "in your browser.")
-            if debug:
-                print(f"""Playing: {dictionary.get("websitelink")}""")
-            speak_message("Opening the link in your browser...", out_loud=speak)
-            system("start " + dictionary.get("websitelink"))
-        else:
-            # get the first link on google for the search and open it
-            link = google_search.search(dictionary.get("songsearch"))[0].get("link")
-            if debug:
-                print(f"Playing: {link}")
-            speak_message("Opening the link in your browser...", out_loud=speak)
-            # open the link using system
-            system("start " + link)
+                exec(f"import {root.replace('/', '.')}.{app[:-3]} as {app[:-3]}")
+                package_list.append(app[:-3])
+            except Exception as e:
+                print(f"Error loading {app}: {e}")
+        elif app == "jarvis_requirements.txt":
+            # add requirements to requirements list
+            with open(f"{root}/{app}") as f:
+                requirements.extend(f.read().splitlines())
+            # remove duplicates from the list
+            requirements = list(dict.fromkeys(requirements))
 
-    elif dictionary.get("weather") is True:
-        print("Getting weather...")
-        # get the location from the dictionary
-        location = dictionary.get("location")
-        # get the weather
-        weather = google_search.weather(location)
-        # print the weather for the day
-        speak_message(f"Today's weather in {location}", out_loud=speak)
-        print(
-            f"""Today's weather in {location}:\nTemperature: {weather["temp"]}°F\nConditions: {weather["weather"]}\nWind Speed: {weather["wind"]}\nHumidity: {weather["humidity"]}\nPrecipitation: {weather["precipitation"]}"""
-        )
-    elif action == "query":
-        if "time" in dictionary.get("keywords"):
-            # get the current time and print
-            speak_message("The time is " + str(datetime.datetime.now().strftime("%H:%M")), out_loud=speak)
-        else:
-            query = dictionary.get("fullsearchquery")
-            if debug:
-                print("Searching for: ", query)
-            else:
-                print("Searching the web...")
+# load all prompt extensions from packages
+prompt_extensions = []
+for package in package_list:
+    try:
+        # get the prompt extension from the package
+        prompt_extensions.append(eval(f"{package}.prompt_extension"))
+    except Exception as e:
+        print(f"Error loading prompt extension from {package}: {e}")
 
-            search_results = google_search.search(query, text=True, links=5)
 
-            prompt = f"""answer the query given using the text given, only give the direct answer, do not repete the question or give background or extra information, it the prompt asks for a link make sure to return one, the text is from a google search of the query, at the end of the text will be links and thier corisponding header text, the query is {query}, the text is {search_results}"""
+# install requirements
+if requirements:
+    # get installed packages using terminal command
+    installed_packages = subprocess.check_output(
+        [sys.executable, "-m", "pip", "freeze"]
+    )
+    for package in requirements:
+        # check if the package is installed
+        if package not in [str(i).split(" ")[0] for i in installed_packages]:
+            # install the package using terminal command
+            subprocess.check_output([sys.executable, "-m", "pip", "install", package])
 
-            response = openai.ChatCompletion.create(
-                messages=[
-                    {"role": "user", "content": prompt},
-                ],
-                model="gpt-3.5-turbo",
-                temperature=0,
-                max_tokens=1000,
-            )
-
-            answer = response["choices"][0]["message"]["content"]
-
-            # print price of prompt and response in usd
-            if debug:
-                print(
-                    f"Total cost in dollars: ${response['usage']['total_tokens'] * 0.000002}"
-                )
-
-            if debug:
-                print(f"ANSWER: {answer}")
-            else:
-                print(answer)
+# print the list of loaded apps
+# print(f"Number of packages loaded: {len(package_list)}: {package_list}")

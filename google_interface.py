@@ -87,6 +87,17 @@ class Google:
 
         # get the search results
         results = self.driver.find_element(By.ID, "rcnt")
+        # try to delete div with id of "taw", which is spellcheck
+        try:
+            self.driver.execute_script("document.getElementById(\"taw\").remove()")
+        except Exception as e:
+            pass
+
+        # try to delete div with id of "taw", which is spellcheck
+        try:
+            self.driver.execute_script("document.getElementById(\"taw\").remove()")
+        except Exception as e:
+            pass
 
         if text:
             # remove all newlines and replace with semicolons
@@ -162,9 +173,45 @@ class Google:
 
         return verified_results
 
+    def searchYouTube(self, search, links=None):
+        self.driver.get(f"https://www.youtube.com/results?search_query={search}")
+
+        content = self.driver.find_elements(By.TAG_NAME, "ytd-video-renderer")
+
+        print(content)
+
+        videos = []
+
+        for video in content:
+            print(video.text)
+            try:
+                title = video.find_element(By.TAG_NAME, "h3").text
+                link = video.find_element(By.ID, "video-title").get_attribute("href")
+                description = video.find_element(By.XPATH, ".//div[1]/div/div[3]").text
+                meta = video.find_element(By.ID, "metadata").text
+                channel = video.find_element(By.CLASS_NAME, "ytd-channel-name").text
+
+                videos.append(
+                    {
+                        "title": title,
+                        "link": link,
+                        "description": description,
+                        "meta": meta,
+                        "channel": channel,
+                    }
+                )
+            except Exception as e:
+                pass
+
+        if links is not None:
+            if len(videos) > links:
+                videos = videos[:links]
+
+        return videos
+
 
 if __name__ == "__main__":
     g = Google()
     # weather = g.weather("New York")
     # print(weather)
-    print(g.search("joe biden age", text=True, links=5))
+    print(g.searchYouTube("games"))
